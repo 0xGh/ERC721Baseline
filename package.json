@@ -1,0 +1,29 @@
+{
+  "name": "erc721baseline",
+  "version": "0.1.0-alpha.0",
+  "description": "A baseline ERC721 contract that can be used via proxies",
+  "files": [
+    "contracts",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "truffle test",
+    "test:gas": "GAS=true truffle test --reporter eth-gas-reporter"
+  },
+  "keywords": [
+    "ERC721",
+    "openzeppelin",
+    "proxy"
+  ],
+  "author": "0xG",
+  "license": "MIT",
+  "devDependencies": {
+    "@openzeppelin/test-helpers": "^0.5.16",
+    "dotenv": "^16.3.1",
+    "eth-gas-reporter": "^0.2.25",
+    "truffle": "^5.11.2"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "4.9.3"
+  }
+}
