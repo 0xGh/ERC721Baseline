@@ -3,20 +3,23 @@
 pragma solidity 0.8.21;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import {Admin} from "./Admin.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {IERC2981} from "@openzeppelin/contracts/interfaces/IERC2981.sol";
-import {IERC4906} from "@openzeppelin/contracts/interfaces/IERC4906.sol";
 import {IERC721Baseline} from "./IERC721Baseline.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 /**
  * @title ERC721Baseline
  * @custom:version v0.1.0-alpha.0
- * @notice A baseline ERC721 contract implementation that exposes some internal methods so that a proxy can access them.
+ * @notice A baseline ERC721 contract implementation that exposes internal methods to a proxy instance.
  */
 
-contract ERC721Baseline is ERC721, Admin, IERC2981, IERC4906, IERC721Baseline {
+contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
+
+  /**
+   * @dev The version of the implementation contract.
+   */
+  string public constant VERSION = "0.1.0-alpha.0";
 
   constructor() ERC721("", "") {}
 
@@ -26,7 +29,7 @@ contract ERC721Baseline is ERC721, Admin, IERC2981, IERC4906, IERC721Baseline {
    */
   modifier onlyProxy {
     if (_msgSender() != address(this)) {
-      revert OnlyProxy();
+      revert NotProxy();
     }
     _;
   }
@@ -35,10 +38,10 @@ contract ERC721Baseline is ERC721, Admin, IERC2981, IERC4906, IERC721Baseline {
    * Supported Interfaces
    ************************************************/
 
-  function supportsInterface(bytes4 interfaceId) public view virtual override(IERC165, ERC721) returns (bool) {
+  function supportsInterface(bytes4 interfaceId) public view override(IERC165, ERC721) returns (bool) {
     return (
       interfaceId == /* NFT Royalty Standard */ type(IERC2981).interfaceId ||
-      interfaceId == /* Metadata Update Extension */ type(IERC4906).interfaceId ||
+      interfaceId == /* Metadata Update Extension */ bytes4(0x49064906) ||
       interfaceId == type(IERC721Baseline).interfaceId ||
       super.supportsInterface(interfaceId)
     );
@@ -55,18 +58,14 @@ contract ERC721Baseline is ERC721, Admin, IERC2981, IERC4906, IERC721Baseline {
   bool private _initialized;
 
   /**
-   * @notice Initializes a proxy contract.
-   * @dev This method MUST be called in the proxy constructor
-   * to initialize the proxy with a name and symbol for the underlying ERC721.
-   *
-   * Additionally this method sets the deployer as owner and admin for the proxy.
-   *
-   * @param name contract name
-   * @param symbol contract symbol
+   * @dev See {IERC721Baseline-initialize}.
    */
   function initialize(string memory name, string memory symbol) external {
-    if (_initialized == true || address(this).code.length != 0) {
-      revert AlreadyInitialized();
+    if (
+      _initialized == true ||
+      address(this).code.length != 0
+    ) {
+      revert Unauthorized();
     }
 
     _initialized = true;
@@ -74,7 +73,8 @@ contract ERC721Baseline is ERC721, Admin, IERC2981, IERC4906, IERC721Baseline {
     _name = name;
     _symbol = symbol;
 
-    __Admin_init();
+    _setAdmin(_msgSender(), true);
+    _transferOwnership(_msgSender());
   }
 
 
@@ -84,16 +84,6 @@ contract ERC721Baseline is ERC721, Admin, IERC2981, IERC4906, IERC721Baseline {
 
   string private _name;
   string private _symbol;
-
-  /**
-   * @notice The base URI used by the default {IERC721Metadata-tokenURI} implementation.
-   */
-  string public __baseURI;
-
-  /**
-   * @dev Contract version.
-   */
-  string public constant VERSION = "0.1.0-alpha.0";
 
   /**
    * @dev See {IERC721Metadata-name}.
@@ -110,6 +100,11 @@ contract ERC721Baseline is ERC721, Admin, IERC2981, IERC4906, IERC721Baseline {
   }
 
   /**
+   * @notice The base URI used by the default {IERC721Metadata-tokenURI} implementation.
+   */
+  string public __baseURI;
+
+  /**
    * @dev See {ERC721-_baseURI}.
    *
    * @return string the base URI used by the default {IERC721Metadata-tokenURI} implementation
@@ -119,10 +114,7 @@ contract ERC721Baseline is ERC721, Admin, IERC2981, IERC4906, IERC721Baseline {
   }
 
   /**
-   * @notice Sets a contract-wide base URI.
-   * @dev The default implementation of tokenURI will concatenate the base URI and token ID.
-   *
-   * @param baseURI shared base URI for the tokens
+   * @dev See {IERC721Baseline-__setBaseURI}.
    */
   function __setBaseURI(string calldata baseURI) external onlyProxy {
     __baseURI = baseURI;
@@ -136,7 +128,7 @@ contract ERC721Baseline is ERC721, Admin, IERC2981, IERC4906, IERC721Baseline {
   /**
    * @notice See `royaltyInfo` in the proxy contract.
    * @dev ERC721Baseline defaults to 0% royalties
-   * and therefore must be implemented in the proxy contract in order to customize royalties.
+   * and therefore the method must be implemented again in the proxy contract in order to customize royalties.
    */
   function royaltyInfo(
     uint256,
@@ -172,7 +164,7 @@ contract ERC721Baseline is ERC721, Admin, IERC2981, IERC4906, IERC721Baseline {
   }
 
   /**
-   * @dev Tracks whether the _beforeTokenTransfer hook is enabled in the implementation or not.
+   * @dev Tracks whether the `_beforeTokenTransfer` hook is enabled or not.
    * When enabled, this contract will call the hook on `_beforeTokenTransfer`.
    */
   bool private _beforeTokenTransferHookEnabled;
@@ -187,9 +179,9 @@ contract ERC721Baseline is ERC721, Admin, IERC2981, IERC4906, IERC721Baseline {
   /**
    * @dev Allows to define a `_beforeTokenTransfer` hook method in the proxy contract that is called when `_beforeTokenTransferHookEnabled` is `true`.
    *
-   * The proxy `_beforeTokenTransfer` method is called with the following params:
+   * The proxy's `_beforeTokenTransfer` method is called with the following params:
    *
-   * - address the transaction's msg.sender
+   * - address the transaction's _msgSender()
    * - address from
    * - address to
    * - uint256 tokenId
@@ -272,11 +264,65 @@ contract ERC721Baseline is ERC721, Admin, IERC2981, IERC4906, IERC721Baseline {
     _setApprovalForAll(owner, operator, approved);
   }
 
+
+  /************************************************
+   * Access control
+   ************************************************/
+
   /**
-   * @dev See {IERC721Baseline-__transferOwnership}.
+   * Implements a multi-admin system and a minimal Ownable-compatible API.
    */
-  function __transferOwnership(address newOwner) external onlyProxy {
-    _transferOwnership(newOwner);
+
+  /**
+   * @dev Tracks the contract admins.
+   */
+  mapping(address => bool) private _admins;
+
+  /**
+   * Access control > multi-admin system
+   */
+
+  /**
+   * @dev Internal method: checks if an address is the contract owner or an admin.
+   *
+   * @param addr address to check
+   * @return bool whether the address is an admin or not
+   */
+  function _isAdmin(address addr) internal view returns (bool) {
+    return _owner == addr || _admins[addr] == true;
+  }
+
+  /**
+   * @dev See {IERC721Baseline-isAdmin}.
+   */
+  function isAdmin(address addr) external view returns (bool) {
+    return _isAdmin(addr);
+  }
+
+  /**
+   * @dev Internal method: allows to add or remove an admin.
+   *
+   * @param addr address to add or remove
+   * @param add boolean indicating whether the address should be granted or revoked rights
+   */
+  function _setAdmin(address addr, bool add) internal {
+    if (add) {
+      _admins[addr] = true;
+    } else {
+      delete _admins[addr];
+    }
+    emit AdminSet(addr, add);
+  }
+
+  /**
+   * @dev See {IERC721Baseline-setAdmin}.
+   */
+  function setAdmin(address addr, bool add) external {
+    if (_isAdmin(_msgSender()) == false) {
+      revert Unauthorized();
+    }
+
+    _setAdmin(addr, add);
   }
 
   /**
@@ -284,5 +330,59 @@ contract ERC721Baseline is ERC721, Admin, IERC2981, IERC4906, IERC721Baseline {
    */
   function __setAdmin(address addr, bool add) external onlyProxy {
     _setAdmin(addr, add);
+  }
+
+  /**
+   * @dev See {IERC721Baseline-requireAdmin}.
+   */
+  function requireAdmin(address addr) external view {
+    if (_isAdmin(addr) == false) {
+      revert Unauthorized();
+    }
+  }
+
+  /**
+   * Access control > Ownable-compatible API.
+   */
+
+  /**
+   * @dev Tracks the contract owner.
+   */
+  address private _owner;
+
+  /**
+   * @dev See {IERC721Baseline-owner}.
+   */
+  function owner() external view returns (address) {
+    return _owner;
+  }
+
+  /**
+   * @dev Internal method: transfers ownership of the contract to a new account.
+   *
+   * @param newOwner new owner address
+   */
+  function _transferOwnership(address newOwner) internal {
+     address oldOwner = _owner;
+    _owner = newOwner;
+    emit OwnershipTransferred(oldOwner, newOwner);
+  }
+
+  /**
+   * @dev See {IERC721Baseline-transferOwnership}.
+   */
+  function transferOwnership(address newOwner) external {
+    if (_isAdmin(_msgSender()) == false) {
+      revert Unauthorized();
+    }
+
+    _transferOwnership(newOwner);
+  }
+
+  /**
+   * @dev See {IERC721Baseline-__transferOwnership}.
+   */
+  function __transferOwnership(address newOwner) external onlyProxy {
+    _transferOwnership(newOwner);
   }
 }

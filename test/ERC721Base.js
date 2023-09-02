@@ -119,7 +119,7 @@ contract(
 
           assert.equal(true, await proxyDelegate.isAdmin(anotherAdmin));
 
-          await expectEvent(receipt, "SetAdmin", {
+          await expectEvent(receipt, "AdminSet", {
             addr: anotherAdmin,
             add: true,
           });
@@ -134,7 +134,7 @@ contract(
           const receipt = await proxyDelegate.setAdmin(anotherAdmin, false);
           assert.equal(false, await proxyDelegate.isAdmin(anotherAdmin));
 
-          await expectEvent(receipt, "SetAdmin", {
+          await expectEvent(receipt, "AdminSet", {
             addr: anotherAdmin,
             add: false,
           });
