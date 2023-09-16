@@ -2,13 +2,15 @@
 
 pragma solidity 0.8.21;
 
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+
 /**
  * @title IERC721Baseline
  * @custom:version v0.1.0-alpha.0
  * @notice A baseline ERC721 contract implementation that exposes internal methods to a proxy instance.
  */
 
-interface IERC721Baseline {
+interface IERC721Baseline is IERC721 {
 
   /**
    * @dev The version of the implementation contract.
@@ -16,7 +18,7 @@ interface IERC721Baseline {
   function VERSION() external view returns (string memory);
 
   /**
-   * Indicates an unauthorized operation or access attempt.
+   * Indicates an unauthorized operation or unauthorized access attempt.
    */
   error Unauthorized();
 
@@ -43,13 +45,65 @@ interface IERC721Baseline {
    ************************************************/
 
   /**
-   * @notice The base URI used by the default {IERC721Metadata-tokenURI} implementation.
+   * @notice The total minted supply.
+   * @dev The supply is decreased when a token is burned.
+   * Generally it is recommended to use a separate counter variable to track the supply available for minting.
+   */
+  function totalSupply() external view returns (uint256);
+
+  /**
+   * Token URI methods.
+   *
+   * The ERC721Baseline tokenURI implementation allows to define uris in the following order:
+   *
+   * 1. Token-specific URI by ID.
+   * 2. Shared URI.
+   * 3. Shared base URI + token ID.
+   * 4. Empty string if none of the above was found.
+   */
+
+  /**
+   * @notice Returns the token URI for a token ID.
+   *
+   * @param tokenId token ID
+   */
+  function __tokenURI(uint256 tokenId) external view returns (string memory);
+
+  /**
+   * @notice Sets the token URI for a token ID.
+   * @dev Emits EIP-4906's `MetadataUpdate` event with the `tokenId`.
+   *
+   * @param tokenId token ID
+   * @param tokenURI URI pointing to the metadata
+   */
+  function __setTokenURI(uint256 tokenId, string calldata tokenURI) external;
+
+  /**
+   * @notice Returns the shared URI for the tokens.
+   */
+  function __sharedURI() external view returns (string memory);
+
+  /**
+   * @notice Sets a shared URI for the tokens.
+   * @dev This method doesn't emit the EIP-4906's `BatchMetadataUpdate` event
+   * because ERC721Baseline allows to mint any token ID, starting at any index.
+   * The proxy should emit `BatchMetadataUpdate`.
+   *
+   * @param sharedURI shared URI for the tokens
+   */
+  function __setSharedURI(string calldata sharedURI) external;
+
+  /**
+   * @notice Returns the base URI for the tokens.
+   * @dev When set this URI is prepended to the token ID.
    */
   function __baseURI() external view returns (string memory);
 
   /**
    * @notice Sets a contract-wide base URI.
-   * @dev The default implementation of {IERC721Metadata-tokenURI} will concatenate the base URI and token ID.
+   * @dev This method doesn't emit the EIP-4906 `BatchMetadataUpdate` event
+   * because ERC721Baseline allows to mint any token ID, starting at any index.
+   * The proxy should emit `BatchMetadataUpdate`.
    *
    * @param baseURI shared base URI for the tokens
    */
@@ -70,6 +124,12 @@ interface IERC721Baseline {
    * This method is internal and only the proxy contract can call it.
    */
   function __mint(address to, uint256 tokenId) external;
+
+  /**
+   * @dev Similar to {ERC721-_mint} but allows to set a dedicated tokenURI for the token.
+   * This method is internal and only the proxy contract can call it.
+   */
+  function __mint(address to, uint256 tokenId, string calldata tokenURI) external;
 
   /**
    * @dev See {ERC721-_burn}.
@@ -104,7 +164,7 @@ interface IERC721Baseline {
    * @dev See {ERC721-_checkOnERC721Received}.
    * This method is internal and only the proxy contract can call it.
    *
-   * @dev NOTE that this method accepts an additional first parameter that is the original transaction's msg.sender
+   * @dev NOTE that this method accepts an additional first parameter that is the original transaction's `msg.sender`.
    */
   function __checkOnERC721Received(address sender, address from, address to, uint256 tokenId, bytes memory data) external returns (bool);
 

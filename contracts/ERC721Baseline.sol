@@ -7,6 +7,7 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {IERC2981} from "@openzeppelin/contracts/interfaces/IERC2981.sol";
 import {IERC721Baseline} from "./IERC721Baseline.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import {SignatureCheckerLib} from "solady/src/utils/SignatureCheckerLib.sol";
 
 /**
  * @title ERC721Baseline
@@ -82,6 +83,11 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
    * Metadata
    ************************************************/
 
+  /**
+   * @dev See {IERC721Baseline-totalSupply}.
+   */
+  uint256 public totalSupply;
+
   string private _name;
   string private _symbol;
 
@@ -100,18 +106,47 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   }
 
   /**
-   * @notice The base URI used by the default {IERC721Metadata-tokenURI} implementation.
+   * Token URI.
+   *
+   * The tokenURI implementation allows to define uris in the following order:
+   *
+   * 1. Token-specific URI by ID.
+   * 2. Shared URI.
+   * 3. Shared base URI + token ID.
+   * 4. Empty string if none of the above was found.
    */
-  string public __baseURI;
+
+  event MetadataUpdate(uint256 tokenId);
 
   /**
-   * @dev See {ERC721-_baseURI}.
-   *
-   * @return string the base URI used by the default {IERC721Metadata-tokenURI} implementation
+   * @dev See {IERC721Baseline-__tokenURI}.
    */
-  function _baseURI() internal view override returns (string memory) {
-    return __baseURI;
+  mapping(uint256 => string) public __tokenURI;
+
+  /**
+   * @dev See {IERC721Baseline-__setTokenURI}.
+   */
+  function __setTokenURI(uint256 tokenId, string calldata tokenURI) external onlyProxy {
+    __tokenURI[tokenId] = tokenURI;
+    emit MetadataUpdate(tokenId);
   }
+
+  /**
+   * @dev See {IERC721Baseline-__sharedURI}.
+   */
+  string public __sharedURI;
+
+  /**
+   * @dev See {IERC721Baseline-__setSharedURI}.
+   */
+  function __setSharedURI(string calldata sharedURI) external onlyProxy {
+    __sharedURI = sharedURI;
+  }
+
+  /**
+   * @dev See {IERC721Baseline-__baseURI}.
+   */
+  string public __baseURI;
 
   /**
    * @dev See {IERC721Baseline-__setBaseURI}.
@@ -120,13 +155,36 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
     __baseURI = baseURI;
   }
 
+  function _baseURI() internal view override returns (string memory) {
+    return __baseURI;
+  }
+
+  function tokenURI(uint256 tokenId) public view override returns (string memory) {
+    _requireMinted(tokenId);
+
+    string memory uri = __tokenURI[tokenId];
+
+    if (bytes(uri).length > 0) {
+      return uri;
+    }
+
+    if (bytes(__sharedURI).length > 0) {
+      return __sharedURI;
+    }
+
+    if (bytes(__baseURI).length > 0) {
+      return super.tokenURI(tokenId);
+    }
+
+    return "";
+  }
 
   /************************************************
    * Royalties
    ************************************************/
 
   /**
-   * @notice See `royaltyInfo` in the proxy contract.
+   * @notice See `royaltyInfo` in the proxy contract if defined.
    * @dev ERC721Baseline defaults to 0% royalties
    * and therefore the method must be implemented again in the proxy contract in order to customize royalties.
    */
@@ -146,14 +204,28 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
    * @dev See {IERC721Baseline-__mint}.
    */
   function __mint(address to, uint256 tokenId) external onlyProxy {
+    totalSupply += 1;
     _mint(to, tokenId);
+  }
+
+  /**
+   * @dev See {IERC721Baseline-__mint}.
+   */
+  function __mint(address to, uint256 tokenId, string calldata tokenURI) external onlyProxy {
+    totalSupply += 1;
+    _mint(to, tokenId);
+    __tokenURI[tokenId] = tokenURI;
   }
 
   /**
    * @dev See {IERC721Baseline-__burn}.
    */
   function __burn(uint256 tokenId) external onlyProxy {
+    totalSupply -= 1;
     _burn(tokenId);
+    if (bytes(__tokenURI[tokenId]).length > 0) {
+      delete __tokenURI[tokenId];
+    }
   }
 
   /**
@@ -384,5 +456,32 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
    */
   function __transferOwnership(address newOwner) external onlyProxy {
     _transferOwnership(newOwner);
+  }
+
+  /**
+   * Signature Validation Library.
+   * MIT Licensed, (c) 2022-present Solady.
+   */
+
+  /**
+   * @dev See {SignatureCheckerLib-isValidSignatureNow}.
+   */
+  function isValidSignatureNow(address signer, bytes32 hash, bytes memory signature)
+    external
+    view
+    returns (bool isValid)
+  {
+    return SignatureCheckerLib.isValidSignatureNow(signer, hash, signature);
+  }
+
+  /**
+   * @dev See {SignatureCheckerLib-isValidSignatureNowCalldata}.
+   */
+  function isValidSignatureNowCalldata(address signer, bytes32 hash, bytes calldata signature)
+    external
+    view
+    returns (bool isValid)
+  {
+    return SignatureCheckerLib.isValidSignatureNowCalldata(signer, hash, signature);
   }
 }
