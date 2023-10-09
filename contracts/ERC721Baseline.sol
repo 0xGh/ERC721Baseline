@@ -160,7 +160,7 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   }
 
   function tokenURI(uint256 tokenId) public view override returns (string memory) {
-    _requireMinted(tokenId);
+    _requireOwned(tokenId);
 
     string memory uri = __tokenURI[tokenId];
 
@@ -201,6 +201,20 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
    ************************************************/
 
   /**
+   * @dev See {IERC721Baseline-__ownerOf}.
+   */
+  function __ownerOf(uint256 tokenId) external returns (address) {
+    return _ownerOf(tokenId);
+  }
+
+  /**
+   * @dev See {IERC721Baseline-__update}.
+   */
+  function __update(address to, uint256 tokenId, address auth) external onlyProxy returns (address) {
+    return super._update(to, tokenId, auth);
+  }
+
+  /**
    * @dev See {IERC721Baseline-__mint}.
    */
   function __mint(address to, uint256 tokenId) external onlyProxy {
@@ -236,8 +250,8 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   }
 
   /**
-   * @dev Tracks whether the `_beforeTokenTransfer` hook is enabled or not.
-   * When enabled, this contract will call the hook on `_beforeTokenTransfer`.
+   * @dev Tracks whether the proxy's `_beforeTokenTransfer` hook is enabled or not.
+   * When enabled, this contract will call the hook when ERC721 calls `_update`.
    */
   bool private _beforeTokenTransferHookEnabled;
 
@@ -258,33 +272,32 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
    * - address to
    * - uint256 tokenId
    */
-  function _beforeTokenTransfer(
-    address from,
+  function _update(
     address to,
     uint256 tokenId,
-    uint256
-  ) internal override {
-    if (_beforeTokenTransferHookEnabled == false) {
-      return;
+    address auth
+  ) internal override returns (address) {
+    if (_beforeTokenTransferHookEnabled == true) {
+      (bool success, ) = address(this).delegatecall(
+        abi.encodeWithSignature(
+          "_beforeTokenTransfer(address,address,address,uint256)",
+          _msgSender(),
+          _ownerOf(tokenId),
+          to,
+          tokenId
+        )
+      );
+
+      assembly {
+        switch success
+          case 0 {
+            returndatacopy(0, 0, returndatasize())
+            revert(0, returndatasize())
+          }
+      }
     }
 
-    (bool success, ) = address(this).delegatecall(
-      abi.encodeWithSignature(
-        "_beforeTokenTransfer(address,address,address,uint256)",
-        _msgSender(),
-        from,
-        to,
-        tokenId
-      )
-    );
-
-    assembly {
-      switch success
-        case 0 {
-          returndatacopy(0, 0, returndatasize())
-          revert(0, returndatasize())
-        }
-    }
+    return super._update(to, tokenId, auth);
   }
 
   /**
@@ -296,13 +309,15 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
     address to,
     uint256 tokenId,
     bytes memory data
-  ) external onlyProxy returns (bool) {
-    if (to.code.length > 0) { // to.isContract()
+  ) external {
+    if (to.code.length > 0) {
       try IERC721Receiver(to).onERC721Received(sender, from, tokenId, data) returns (bytes4 retval) {
-        return retval == IERC721Receiver.onERC721Received.selector;
+        if (retval != IERC721Receiver.onERC721Received.selector) {
+          revert ERC721InvalidReceiver(to);
+        }
       } catch (bytes memory reason) {
         if (reason.length == 0) {
-          revert("ERC721: transfer to non ERC721Receiver implementer");
+          revert ERC721InvalidReceiver(to);
         } else {
           /// @solidity memory-safe-assembly
           assembly {
@@ -310,23 +325,21 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
           }
         }
       }
-    } else {
-      return true;
     }
   }
 
   /**
-   * @dev See {IERC721Baseline-__isApprovedOrOwner}.
+   * @dev See {IERC721Baseline-__isAuthorized}.
    */
-  function __isApprovedOrOwner(address spender, uint256 tokenId) external view onlyProxy returns (bool) {
-    return _isApprovedOrOwner(spender, tokenId);
+  function __isAuthorized(address owner, address spender, uint256 tokenId) external view returns (bool) {
+    return _isAuthorized(owner, spender, tokenId);
   }
 
   /**
    * @dev See {IERC721Baseline-__approve}.
    */
-  function __approve(address to, uint256 tokenId) external onlyProxy {
-    _approve(to, tokenId);
+  function __approve(address to, uint256 tokenId, address auth, bool emitEvent) external onlyProxy {
+    _approve(to, tokenId, auth, emitEvent);
   }
 
   /**

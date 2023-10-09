@@ -4,6 +4,26 @@ const ERC721ConstructorAttackerMock = artifacts.require(
   "ERC721ConstructorAttackerMock",
 );
 
+/**
+ * ERC721Baseline tests
+ * –––––––––––––––––––––
+ *
+ * # Overview
+ *
+ * This file contains tests for the ERC721Baseline.sol contract
+ * which is instantiated once and available via the `implementation` variable.
+ *
+ * A `proxy` contract to this implementation is instantiated for each test,
+ * and since the instance won't have the ABI to call delegated methods to ERC721Baseline,
+ * you get another `proxyDelegate` variable that is `ERC721Baseline.at(proxy.address)`.
+ *
+ * You can use `proxyDelegate` to call methods implemented in ERC721Baseline
+ * but not in the proxy (for example standard ERC721 methods).
+ *
+ * When necessary a test or a group of them (a describe block) include comments to
+ * facilitate the review and understanding of what is being tested and how.
+ */
+
 const {
   expectRevert: expectRevertMessage,
   expectEvent,
@@ -20,12 +40,13 @@ contract(
     operator,
     ...accounts
   ]) {
+    // ERC721Baseline.
     let implementation;
 
-    // proxy to implementation
+    // proxy to ERC721Baseline - this is what a dev would deploy.
     let proxy;
     // proxyDelegate is the ERC721Baseline.at(proxy.address)
-    // this allows to call methods that are delegated to ERC721Baseline
+    // this allows to call methods that are delegated to ERC721Baseline.
     let proxyDelegate;
 
     // Assume that ERC721Baseline (the implementation) is deployed once.
@@ -41,7 +62,7 @@ contract(
     });
 
     describe("implementation", () => {
-      it("attacker and implementation owner cannot call initialize", async () => {
+      it("initialization: attacker and implementation owner cannot call initialize", async () => {
         await expectRevert(
           implementation.initialize("Malicious", "M", {
             from: attacker,
@@ -64,7 +85,7 @@ contract(
         );
       });
 
-      it("attacker and implementation owner cannot call onlyProxy method", async () => {
+      it("onlyProxy: attacker and implementation owner cannot call onlyProxy method", async () => {
         await expectRevert(
           implementation.__mint(attacker, 1, {
             from: attacker,
@@ -93,12 +114,19 @@ contract(
           "NotProxy",
         );
       });
+
+      getOnlyProxyMethods().forEach(([method, ...args]) => {
+        it(`${method} is not callable`, async () => {
+          await expectRevert(proxyDelegate[method](...args), "NotProxy");
+        });
+      });
     });
 
     describe("Proxy", () => {
       describe("onlyProxy methods", async () => {
         it("onlyProxy method works", async () => {
-          // mint is a method that uses the internal onlyProxy __mint method.
+          // adminMint is a method that uses the ERC721Baseline __mint method
+          // which is available only to proxy contracts.
           await proxy.adminMint(user, 1);
 
           // successfully minted
@@ -108,11 +136,34 @@ contract(
           // this operation didn't affect the implementation
           assert.equal(0, await implementation.balanceOf(user));
         });
+
+        getOnlyProxyMethods().forEach(([method, ...args]) => {
+          it(`${method} is callable`, async () => {
+            // The Proxy mock contract used in these tests
+            // has a matching method for `method` which is prefixed with onlyProxy_
+            // We call this here and make sure it doesn't revert with a NotProxy error.
+            assert.equal(
+              true,
+              await proxy[
+                /*onlyProxy_methodName*/ `onlyProxy${method.slice(1)}`
+              ](...args)
+                .then(() => true)
+                // Some methods (eg. burn) might require existing state therefore they will revert.
+                // That's fine. In this test we just want to check that they don't revert with NotProxy.
+                .catch((revert) => {
+                  const reasonId = web3.utils
+                    .keccak256("NotProxy()")
+                    .substr(0, 10);
+                  return revert.data.result.includes(reasonId) === false;
+                }),
+            );
+          });
+        });
       });
 
       describe("admin", () => {
         it("requireAdmin check works", async () => {
-          // Admin check works.
+          // adminMint uses the ERC721Baseline requireAdmin test to only allow admins.
           await expectRevert(
             proxy.adminMint(user, 1, { from: attacker }),
             "Unauthorized",
@@ -122,6 +173,7 @@ contract(
         it("admin can add admins", async () => {
           const anotherAdmin = accounts[0];
 
+          // Non-admins can't add a new admin.
           await expectRevert(
             proxyDelegate.setAdmin(attacker, true, { from: attacker }),
             "Unauthorized",
@@ -155,6 +207,7 @@ contract(
         it("can transfer ownership", async () => {
           const anotherOwner = accounts[0];
 
+          // Non-admins can't transfer ownership.
           await expectRevert(
             proxyDelegate.transferOwnership(attacker, { from: attacker }),
             "Unauthorized",
@@ -175,21 +228,19 @@ contract(
           const tokenId = 1;
           await proxy.adminMint(user, tokenId);
 
+          // Make sure that an attacker can't enable the hook.
           await expectRevert(
             proxy.toggleBeforeTokenTransferHook({ from: attacker }),
             "Unauthorized",
           );
 
+          // Enable hook.
           await proxy.toggleBeforeTokenTransferHook();
+
+          // Token owner approves an operator (eg. marketplace) to manage the token.
           await proxyDelegate.approve(operator, tokenId, { from: user });
 
-          await expectRevertMessage(
-            proxyDelegate.transferFrom(user, operator, tokenId, {
-              from: operator,
-            }),
-            "Call to self",
-          );
-
+          // operator transfers the token to anotherUser.
           const anotherUser = accounts[0];
           const receipt = await proxyDelegate.transferFrom(
             user,
@@ -200,17 +251,31 @@ contract(
             },
           );
 
-          await expectEvent(receipt, "BeforeTokenTransferCalled");
-
           assert.equal(anotherUser, await proxyDelegate.ownerOf(tokenId));
 
-          await expectRevertMessage(
-            proxyDelegate.approve(operator, tokenId, { from: user }),
-            "owner",
+          // The proxy mock contract emits BeforeTokenTransferCalled when _beforeTokenTransfer is enabled.
+          await expectEvent.inTransaction(
+            receipt.tx,
+            proxy,
+            "BeforeTokenTransferCalled",
           );
 
+          // user cannot approve anymore because they are not the token owner.
+          await expectRevert(
+            proxyDelegate.approve(operator, tokenId, { from: user }),
+            `ERC721InvalidApprover(address)`,
+          );
+
+          // anotherUser can approve operator.
           await proxyDelegate.approve(operator, tokenId, { from: anotherUser });
 
+          // The Proxy mock contract used in these tests has a check
+          // in _beforeTokenTransfer which compares the msg.sender (from: below)
+          // with recipient (to or operator below).
+          // When those match it reverts with "Call to self".
+          //
+          // The purpose of this check and test is to make sure that `from:` below
+          // (the msg.sender) is passed correctly to _beforeTokenTransfer (between implementation and proxy).
           await expectRevertMessage(
             proxyDelegate.transferFrom(anotherUser, operator, tokenId, {
               from: operator,
@@ -218,16 +283,46 @@ contract(
             "Call to self",
           );
 
+          // Disable _beforeTokenTransfer hook so that it doesn't revert with "Call to self"
+          // and make sure that the transferFrom call completes successfully.
           await proxy.toggleBeforeTokenTransferHook();
 
           await proxyDelegate.transferFrom(anotherUser, operator, tokenId, {
             from: operator,
           });
 
+          // All good the token has been transferred.
           assert.equal(operator, await proxyDelegate.ownerOf(tokenId));
         });
 
-        it.only("can alter proxy state without affecting the implementation state", async () => {
+        it("tx sender (first arg) is set correctly", async () => {
+          const tokenId = 1;
+          await proxy.adminMint(user, tokenId);
+
+          // Make sure that an attacker can't enable the hook.
+          await expectRevert(
+            proxy.toggleBeforeTokenTransferHook({ from: attacker }),
+            "Unauthorized",
+          );
+
+          // Enable hook
+          await proxy.toggleBeforeTokenTransferHook();
+          await proxyDelegate.approve(operator, tokenId, { from: user });
+
+          const sender = operator;
+          const to = operator;
+          // The contract reverts when sender == to
+          // When that's the case it means that msg.sender has been forwarded
+          // to _beforeTokenTransfer correctly
+          await expectRevertMessage(
+            proxyDelegate.transferFrom(user, to, tokenId, {
+              from: sender,
+            }),
+            "Call to self",
+          );
+        });
+
+        it("can alter proxy state without affecting the implementation state", async () => {
           await proxy.toggleBeforeTokenTransferHook();
 
           const tokenId = 1;
@@ -241,25 +336,74 @@ contract(
             { from: user },
           );
 
-          await expectEvent(receipt, "BeforeTokenTransferCalled");
+          await expectEvent.inTransaction(
+            receipt.tx,
+            proxy,
+            "BeforeTokenTransferCalled",
+          );
 
           assert.equal("altered", await proxy.__baseURI());
           assert.equal("", await implementation.__baseURI());
         });
+
+        // add new tests here
       });
     });
+
+    function getOnlyProxyMethods() {
+      const methods = ERC721Baseline.abi
+        .filter(
+          (method) =>
+            method.name &&
+            method.name.startsWith("__") &&
+            new RegExp(`function\\s+${method.name}.*onlyProxy[^{]*{`).test(
+              ERC721Baseline.source,
+            ),
+        )
+        // Prepare some fixtures for the ERC721Baseline OnlyProxy methods so that we can call them in bulk.
+        .map((method) => [
+          method.name,
+          ...method.inputs.map((arg, index) => {
+            switch (arg.type) {
+              case "uint256":
+                return 1;
+              case "string":
+                return "test";
+              case "address":
+                return accounts[index];
+              case "bool":
+                return true;
+              case "bytes":
+                return "";
+              default:
+                throw new Error(
+                  `onlyProxyMethods: Missing fixture for type ${arg.type} (method: ${method.name})`,
+                );
+            }
+          }),
+        ]);
+
+      assert.equal(
+        methods.length,
+        ERC721Baseline.source.match(/onlyProxy/g).length - 1, // -1 because the modifier definition does not count.
+      );
+
+      return methods;
+    }
   },
 );
 
 async function expectRevert(promise, reason) {
   try {
     await promise;
-    expect.fail("Expected promise to throw but it didn't");
+    expect.fail(`Expected promise to throw with ${reason} but it didn't.`);
   } catch (revert) {
     if (reason) {
-      const reasonId = web3.utils.keccak256(reason + "()").substr(0, 10);
+      const reasonId = web3.utils
+        .keccak256(reason.endsWith(")") ? reason : reason + "()")
+        .substr(0, 10);
       expect(
-        JSON.stringify(revert),
+        revert.data.result,
         `Expected custom error ${reason} (${reasonId})`,
       ).to.include(reasonId);
     }

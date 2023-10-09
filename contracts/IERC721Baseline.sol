@@ -120,6 +120,17 @@ interface IERC721Baseline is IERC721 {
   error NotProxy();
 
   /**
+   * @dev See {ERC721-_ownerOf}.
+   */
+  function __ownerOf(uint256 tokenId) external returns (address);
+
+  /**
+   * @dev See {ERC721-_update}.
+   * This method is internal and only the proxy contract can call it.
+   */
+  function __update(address to, uint256 tokenId, address auth) external returns (address);
+
+  /**
    * @dev See {ERC721-_mint}.
    * This method is internal and only the proxy contract can call it.
    */
@@ -166,19 +177,19 @@ interface IERC721Baseline is IERC721 {
    *
    * @dev NOTE that this method accepts an additional first parameter that is the original transaction's `msg.sender`.
    */
-  function __checkOnERC721Received(address sender, address from, address to, uint256 tokenId, bytes memory data) external returns (bool);
+  function __checkOnERC721Received(address sender, address from, address to, uint256 tokenId, bytes memory data) external;
 
   /**
-   * @dev See {ERC721-_isApprovedOrOwner}.
+   * @dev See {ERC721-_isAuthorized}.
    * This method is internal and only the proxy contract can call it.
    */
-  function __isApprovedOrOwner(address spender, uint256 tokenId) external returns (bool);
+  function __isAuthorized(address owner, address spender, uint256 tokenId) external view returns (bool);
 
   /**
    * @dev See {ERC721-_approve}.
    * This method is internal and only the proxy contract can call it.
    */
-  function __approve(address to, uint256 tokenId) external;
+  function __approve(address to, uint256 tokenId, address auth, bool emitEvent) external;
 
   /**
    * @dev See {ERC721-_setApprovalForAll}.

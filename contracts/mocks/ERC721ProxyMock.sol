@@ -53,7 +53,16 @@ contract ERC721ProxyMock is Proxy {
     baseline.__transfer(from, to, tokenId);
   }
 
+  function onlyProxy_update(address to, uint256 tokenId, address auth) external {
+    baseline.__update(to, tokenId, auth);
+  }
+
   bool private _beforeTokenTransferHookEnabled;
+  function onlyProxy_setBeforeTokenTransferHookEnabled(bool enabled) external {
+    _beforeTokenTransferHookEnabled = enabled;
+    baseline.__setBeforeTokenTransferHookEnabled(_beforeTokenTransferHookEnabled);
+  }
+
   function toggleBeforeTokenTransferHook() external {
     baseline.requireAdmin(msg.sender);
     _beforeTokenTransferHookEnabled = !_beforeTokenTransferHookEnabled;
@@ -67,7 +76,7 @@ contract ERC721ProxyMock is Proxy {
   function _beforeTokenTransfer(address sender, address, address to, uint256) external {
     emit BeforeTokenTransferCalled();
 
-    require(_beforeTokenTransferHookEnabled);
+    require(_beforeTokenTransferHookEnabled, 'not enabled');
 
     // @todo Try to alter state and make sure it is not reflected in the implementation.
 
@@ -78,8 +87,8 @@ contract ERC721ProxyMock is Proxy {
     __baseURI = "altered";
   }
 
-  function onlyProxy_approve(address to, uint256 tokenId) external {
-    baseline.__approve(to, tokenId);
+  function onlyProxy_approve(address to, uint256 tokenId, address auth, bool emitEvent) external {
+    baseline.__approve(to, tokenId, auth, emitEvent);
   }
 
   function onlyProxy_setApprovalForAll(address owner, address operator, bool approved) external {
@@ -110,8 +119,8 @@ contract ERC721ProxyMock is Proxy {
       implementation,
       abi.encodeWithSignature(
         "initialize(string,string)",
-       name,
-       symbol
+        name,
+        symbol
       )
     );
   }
