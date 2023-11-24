@@ -11,7 +11,7 @@ import {SignatureCheckerLib} from "solady/src/utils/SignatureCheckerLib.sol";
 
 /**
  * @title ERC721Baseline
- * @custom:version v0.1.0-alpha.0
+ * @custom:version v0.1.0-alpha.1
  * @notice A baseline ERC721 contract implementation that exposes internal methods to a proxy instance.
  */
 
@@ -20,7 +20,7 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   /**
    * @dev The version of the implementation contract.
    */
-  string public constant VERSION = "0.1.0-alpha.0";
+  string public constant VERSION = "0.1.0-alpha.1";
 
   constructor() ERC721("", "") {}
 
