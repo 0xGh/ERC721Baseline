@@ -7,11 +7,11 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {IERC2981} from "@openzeppelin/contracts/interfaces/IERC2981.sol";
 import {IERC721Baseline} from "./IERC721Baseline.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-import {SignatureCheckerLib} from "solady/src/utils/SignatureCheckerLib.sol";
+import {Utils} from "./Utils.sol";
 
 /**
  * @title ERC721Baseline
- * @custom:version v0.1.0-alpha.1
+ * @custom:version v0.1.0-alpha.2
  * @notice A baseline ERC721 contract implementation that exposes internal methods to a proxy instance.
  */
 
@@ -20,7 +20,7 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   /**
    * @dev The version of the implementation contract.
    */
-  string public constant VERSION = "0.1.0-alpha.1";
+  string public constant VERSION = "0.1.0-alpha.2";
 
   constructor() ERC721("", "") {}
 
@@ -471,30 +471,30 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
     _transferOwnership(newOwner);
   }
 
-  /**
-   * Signature Validation Library.
-   * MIT Licensed, (c) 2022-present Solady.
-   */
+
+  /************************************************
+   * Utils
+   ************************************************/
 
   /**
-   * @dev See {SignatureCheckerLib-isValidSignatureNow}.
+   * @dev See {IERC721Baseline-recover}.
    */
-  function isValidSignatureNow(address signer, bytes32 hash, bytes memory signature)
-    external
-    view
-    returns (bool isValid)
-  {
-    return SignatureCheckerLib.isValidSignatureNow(signer, hash, signature);
+  function recover(bytes32 hash, bytes memory signature) external view returns (address result) {
+    return Utils.recover(hash, signature);
   }
 
   /**
-   * @dev See {SignatureCheckerLib-isValidSignatureNowCalldata}.
+   * @dev See {IERC721Baseline-recoverCalldata}.
    */
-  function isValidSignatureNowCalldata(address signer, bytes32 hash, bytes calldata signature)
-    external
-    view
-    returns (bool isValid)
-  {
-    return SignatureCheckerLib.isValidSignatureNowCalldata(signer, hash, signature);
+  function recoverCalldata(bytes32 hash, bytes calldata signature) external view returns (address result) {
+    return Utils.recoverCalldata(hash, signature);
   }
+
+  /**
+   * @dev See {IERC721Baseline-toString}.
+   */
+  function toString(uint256 value) external pure returns (string memory) {
+    return Utils.toString(value);
+  }
+
 }

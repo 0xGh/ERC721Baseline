@@ -1,9 +1,9 @@
 {
   "name": "erc721baseline",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "A baseline ERC721 contract implementation that exposes internal methods to a proxy instance",
   "files": [
-    "contracts",
+    "contracts/*.sol",
     "LICENSE"
   ],
   "scripts": {
@@ -16,16 +16,33 @@
     "proxy"
   ],
   "author": "0xG",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "devDependencies": {
     "@openzeppelin/test-helpers": "^0.5.16",
     "dotenv": "^16.3.1",
     "eth-gas-reporter": "^0.2.25",
     "prettier": "^3.0.3",
+    "prettier-plugin-solidity": "^1.2.0",
     "truffle": "^5.11.2"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "5.0.0",
-    "solady": "^0.0.122"
+    "@openzeppelin/contracts": "5.0.0"
+  },
+  "prettier": {
+    "plugins": [
+      "prettier-plugin-solidity"
+    ],
+    "overrides": [
+      {
+        "files": "*.sol",
+        "options": {
+          "parser": "solidity-parse",
+          "printWidth": 100,
+          "tabWidth": 2,
+          "useTabs": false,
+          "singleQuote": false
+        }
+      }
+    ]
   }
 }

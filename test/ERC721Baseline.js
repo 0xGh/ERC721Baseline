@@ -345,8 +345,73 @@ contract(
           assert.equal("altered", await proxy.__baseURI());
           assert.equal("", await implementation.__baseURI());
         });
+      });
 
-        // add new tests here
+      describe("Utils", () => {
+        describe("recover", () => {
+          const signer = web3.eth.accounts.create();
+
+          ["recover", "recoverCalldata"].forEach((method) => {
+            it(`${method} works`, async () => {
+              const hash = web3.utils.soliditySha3("test");
+              const { messageHash, signature } = web3.eth.accounts.sign(
+                hash,
+                signer.privateKey,
+              );
+
+              assert.equal(
+                signer.address,
+                await proxyDelegate[method](messageHash, signature),
+              );
+            });
+
+            if (method != "recover") return;
+
+            it(`${method} reverts when the signature is invalid`, async () => {
+              const hash = web3.utils.soliditySha3("test");
+
+              const { message: correctMessageHash } = web3.eth.accounts.sign(
+                hash,
+                signer.privateKey,
+              );
+
+              const invalidSigner = web3.eth.accounts.create();
+
+              const { signature } = web3.eth.accounts.sign(
+                hash,
+                invalidSigner.privateKey,
+              );
+
+              assert.notEqual(
+                ZERO_ADDRESS,
+                await proxyDelegate[method](correctMessageHash, signature),
+              );
+
+              assert.notEqual(
+                signer.address,
+                await proxyDelegate[method](correctMessageHash, signature),
+              );
+
+              await expectRevert(
+                proxyDelegate[method](correctMessageHash, "0x1234"),
+                "InvalidSignature",
+              );
+            });
+          });
+        });
+
+        describe("toString", () => {
+          it("convert uint256 to string", async () => {
+            assert.equal(
+              "1234567",
+              await proxyDelegate.methods["toString(uint256)"](1234567),
+            );
+            assert.equal(
+              "0",
+              await proxyDelegate.methods["toString(uint256)"](0),
+            );
+          });
+        });
       });
     });
 
@@ -400,10 +465,11 @@ async function expectRevert(promise, reason) {
   } catch (revert) {
     if (reason) {
       const reasonId = web3.utils
-        .keccak256(reason.endsWith(")") ? reason : reason + "()")
+        .soliditySha3(reason.endsWith(")") ? reason : reason + "()")
         .substr(0, 10);
+
       expect(
-        revert.data.result,
+        typeof revert.data === "string" ? revert.data : revert.data.result,
         `Expected custom error ${reason} (${reasonId})`,
       ).to.include(reasonId);
     }

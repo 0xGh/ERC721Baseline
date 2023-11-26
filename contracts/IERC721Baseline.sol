@@ -6,7 +6,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 /**
  * @title IERC721Baseline
- * @custom:version v0.1.0-alpha.1
+ * @custom:version v0.1.0-alpha.2
  * @notice A baseline ERC721 contract implementation that exposes internal methods to a proxy instance.
  */
 
@@ -286,4 +286,37 @@ interface IERC721Baseline is IERC721 {
    * @param newOwner new owner address
    */
   function __transferOwnership(address newOwner) external;
+
+
+  /************************************************
+   * Utils
+   ************************************************/
+
+  /**
+   * @notice Recovers the signer's address from a message digest `hash`, and the `signature`.
+   *
+   * @param hash the message digest that was signed
+   * @param signature the signature for hash
+   * @return result address the recovered address
+   */
+  function recover(bytes32 hash, bytes memory signature) external view returns (address result);
+
+  /**
+   * @notice Recovers the signer's address from a message digest `hash`, and the `signature`.
+   * @dev In this method the signature comes from calldata.
+   *
+   * @param hash the message digest that was signed
+   * @param signature the signature for hash
+   * @return result address the recovered address
+   */
+  function recoverCalldata(bytes32 hash, bytes calldata signature) external view returns (address result);
+
+  /**
+   * @notice Converts a uint256 to string
+   *
+   * @param value the uint256 to convert
+   * @return string ASCII string decimal representation of `value`
+   */
+  function toString(uint256 value) external pure returns (string memory);
+
 }
