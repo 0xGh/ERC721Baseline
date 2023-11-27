@@ -203,7 +203,7 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   /**
    * @dev See {IERC721Baseline-__ownerOf}.
    */
-  function __ownerOf(uint256 tokenId) external returns (address) {
+  function __ownerOf(uint256 tokenId) external view returns (address) {
     return _ownerOf(tokenId);
   }
 
@@ -480,14 +480,14 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
    * @dev See {IERC721Baseline-recover}.
    */
   function recover(bytes32 hash, bytes memory signature) external view returns (address result) {
-    return Utils.recover(hash, signature);
+    return Utils.recover(Utils.toEthSignedMessageHash(hash), signature);
   }
 
   /**
    * @dev See {IERC721Baseline-recoverCalldata}.
    */
   function recoverCalldata(bytes32 hash, bytes calldata signature) external view returns (address result) {
-    return Utils.recoverCalldata(hash, signature);
+    return Utils.recoverCalldata(Utils.toEthSignedMessageHash(hash), signature);
   }
 
   /**

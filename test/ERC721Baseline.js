@@ -361,19 +361,12 @@ contract(
 
               assert.equal(
                 signer.address,
-                await proxyDelegate[method](messageHash, signature),
+                await proxyDelegate[method](hash, signature),
               );
             });
 
-            if (method != "recover") return;
-
             it(`${method} reverts when the signature is invalid`, async () => {
               const hash = web3.utils.soliditySha3("test");
-
-              const { message: correctMessageHash } = web3.eth.accounts.sign(
-                hash,
-                signer.privateKey,
-              );
 
               const invalidSigner = web3.eth.accounts.create();
 
@@ -384,16 +377,16 @@ contract(
 
               assert.notEqual(
                 ZERO_ADDRESS,
-                await proxyDelegate[method](correctMessageHash, signature),
+                await proxyDelegate[method](hash, signature),
               );
 
               assert.notEqual(
                 signer.address,
-                await proxyDelegate[method](correctMessageHash, signature),
+                await proxyDelegate[method](hash, signature),
               );
 
               await expectRevert(
-                proxyDelegate[method](correctMessageHash, "0x1234"),
+                proxyDelegate[method](hash, "0x1234"),
                 "InvalidSignature",
               );
             });

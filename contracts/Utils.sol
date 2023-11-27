@@ -116,6 +116,24 @@ library Utils {
     }
   }
 
+  /**
+   * toEthSignedMessageHash
+   *
+   * @dev Returns an Ethereum Signed Message, created from a `hash`.
+   * This produces a hash corresponding to the one signed with the
+   * [`eth_sign`](https://eth.wiki/json-rpc/API#eth_sign)
+   * JSON-RPC method as part of EIP-191.
+   * MIT Licensed, (c) 2022-present Solady.
+   */
+  function toEthSignedMessageHash(bytes32 hash) internal pure returns (bytes32 result) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      mstore(0x20, hash) // Store into scratch space for keccak256.
+      mstore(0x00, "\x00\x00\x00\x00\x19Ethereum Signed Message:\n32") // 28 bytes.
+      result := keccak256(0x04, 0x3c) // `32 * 2 - (32 - 28) = 60 = 0x3c`.
+    }
+  }
+
 
   /************************************************
    * String Utils
