@@ -59,7 +59,7 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   bool private _initialized;
 
   /**
-   * @dev See {IERC721Baseline-initialize}.
+   * @inheritdoc IERC721Baseline
    */
   function initialize(string memory name, string memory symbol) external {
     if (
@@ -84,7 +84,7 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
    ************************************************/
 
   /**
-   * @dev See {IERC721Baseline-totalSupply}.
+   * @inheritdoc IERC721Baseline
    */
   uint256 public totalSupply;
 
@@ -105,26 +105,19 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
     return _symbol;
   }
 
-  /**
-   * Token URI.
-   *
-   * The tokenURI implementation allows to define uris in the following order:
-   *
-   * 1. Token-specific URI by ID.
-   * 2. Shared URI.
-   * 3. Shared base URI + token ID.
-   * 4. Empty string if none of the above was found.
-   */
-
   event MetadataUpdate(uint256 tokenId);
 
   /**
-   * @dev See {IERC721Baseline-__tokenURI}.
+   * Metadata > Token URI
+   */
+
+  /**
+   * @inheritdoc IERC721Baseline
    */
   mapping(uint256 => string) public __tokenURI;
 
   /**
-   * @dev See {IERC721Baseline-__setTokenURI}.
+   * @inheritdoc IERC721Baseline
    */
   function __setTokenURI(uint256 tokenId, string calldata tokenURI) external onlyProxy {
     __tokenURI[tokenId] = tokenURI;
@@ -132,24 +125,24 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   }
 
   /**
-   * @dev See {IERC721Baseline-__sharedURI}.
+   * @inheritdoc IERC721Baseline
    */
   string public __sharedURI;
 
   /**
-   * @dev See {IERC721Baseline-__setSharedURI}.
+   * @inheritdoc IERC721Baseline
    */
   function __setSharedURI(string calldata sharedURI) external onlyProxy {
     __sharedURI = sharedURI;
   }
 
   /**
-   * @dev See {IERC721Baseline-__baseURI}.
+   * @inheritdoc IERC721Baseline
    */
   string public __baseURI;
 
   /**
-   * @dev See {IERC721Baseline-__setBaseURI}.
+   * @inheritdoc IERC721Baseline
    */
   function __setBaseURI(string calldata baseURI) external onlyProxy {
     __baseURI = baseURI;
@@ -159,6 +152,19 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
     return __baseURI;
   }
 
+  /**
+   * @notice Returns the URI associated with a token ID.
+   *
+   * @dev The tokenURI implementation allows to define uris in the following order:
+   *
+   * 1. Token-specific URI by ID.
+   * 2. Shared URI.
+   * 3. Shared base URI + token ID.
+   * 4. Empty string if none of the above was found.
+   *
+   * @param tokenId token ID
+   * @return string the token URI
+   */
   function tokenURI(uint256 tokenId) public view override returns (string memory) {
     _requireOwned(tokenId);
 
@@ -184,9 +190,11 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
    ************************************************/
 
   /**
-   * @notice See `royaltyInfo` in the proxy contract if defined.
-   * @dev ERC721Baseline defaults to 0% royalties
+   * See `royaltyInfo` in the proxy contract if defined.
+   * ERC721Baseline defaults to 0% royalties
    * and therefore the method must be implemented again in the proxy contract in order to customize royalties.
+   *
+   * @inheritdoc IERC2981
    */
   function royaltyInfo(
     uint256,
@@ -201,21 +209,21 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
    ************************************************/
 
   /**
-   * @dev See {IERC721Baseline-__ownerOf}.
+   * @inheritdoc IERC721Baseline
    */
   function __ownerOf(uint256 tokenId) external view returns (address) {
     return _ownerOf(tokenId);
   }
 
   /**
-   * @dev See {IERC721Baseline-__update}.
+   * @inheritdoc IERC721Baseline
    */
   function __update(address to, uint256 tokenId, address auth) external onlyProxy returns (address) {
     return super._update(to, tokenId, auth);
   }
 
   /**
-   * @dev See {IERC721Baseline-__mint}.
+   * @inheritdoc IERC721Baseline
    */
   function __mint(address to, uint256 tokenId) external onlyProxy {
     totalSupply += 1;
@@ -223,7 +231,7 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   }
 
   /**
-   * @dev See {IERC721Baseline-__mint}.
+   * @inheritdoc IERC721Baseline
    */
   function __mint(address to, uint256 tokenId, string calldata tokenURI) external onlyProxy {
     totalSupply += 1;
@@ -232,7 +240,7 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   }
 
   /**
-   * @dev See {IERC721Baseline-__burn}.
+   * @inheritdoc IERC721Baseline
    */
   function __burn(uint256 tokenId) external onlyProxy {
     totalSupply -= 1;
@@ -243,7 +251,7 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   }
 
   /**
-   * @dev See {IERC721Baseline-__transfer}.
+   * @inheritdoc IERC721Baseline
    */
   function __transfer(address from, address to, uint256 tokenId) external onlyProxy {
     _transfer(from, to, tokenId);
@@ -256,13 +264,14 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   bool private _beforeTokenTransferHookEnabled;
 
   /**
-   * @dev See {IERC721Baseline-__setBeforeTokenTransferHookEnabled}.
+   * @inheritdoc IERC721Baseline
    */
   function __setBeforeTokenTransferHookEnabled(bool enabled) external onlyProxy {
     _beforeTokenTransferHookEnabled = enabled;
   }
 
   /**
+   * @dev See {ERC721-_update}.
    * @dev Allows to define a `_beforeTokenTransfer` hook method in the proxy contract that is called when `_beforeTokenTransferHookEnabled` is `true`.
    *
    * The proxy's `_beforeTokenTransfer` method is called with the following params:
@@ -301,7 +310,7 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   }
 
   /**
-   * @dev See {IERC721Baseline-__checkOnERC721Received}.
+   * @inheritdoc IERC721Baseline
    */
   function __checkOnERC721Received(
     address sender,
@@ -329,21 +338,21 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   }
 
   /**
-   * @dev See {IERC721Baseline-__isAuthorized}.
+   * @inheritdoc IERC721Baseline
    */
   function __isAuthorized(address owner, address spender, uint256 tokenId) external view returns (bool) {
     return _isAuthorized(owner, spender, tokenId);
   }
 
   /**
-   * @dev See {IERC721Baseline-__approve}.
+   * @inheritdoc IERC721Baseline
    */
   function __approve(address to, uint256 tokenId, address auth, bool emitEvent) external onlyProxy {
     _approve(to, tokenId, auth, emitEvent);
   }
 
   /**
-   * @dev See {IERC721Baseline-__setApprovalForAll}.
+   * @inheritdoc IERC721Baseline
    */
   function __setApprovalForAll(address owner, address operator, bool approved) external onlyProxy {
     _setApprovalForAll(owner, operator, approved);
@@ -378,7 +387,7 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   }
 
   /**
-   * @dev See {IERC721Baseline-isAdmin}.
+   * @inheritdoc IERC721Baseline
    */
   function isAdmin(address addr) external view returns (bool) {
     return _isAdmin(addr);
@@ -400,7 +409,7 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   }
 
   /**
-   * @dev See {IERC721Baseline-setAdmin}.
+   * @inheritdoc IERC721Baseline
    */
   function setAdmin(address addr, bool add) external {
     if (_isAdmin(_msgSender()) == false) {
@@ -411,14 +420,14 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   }
 
   /**
-   * @dev See {IERC721Baseline-__setAdmin}.
+   * @inheritdoc IERC721Baseline
    */
   function __setAdmin(address addr, bool add) external onlyProxy {
     _setAdmin(addr, add);
   }
 
   /**
-   * @dev See {IERC721Baseline-requireAdmin}.
+   * @inheritdoc IERC721Baseline
    */
   function requireAdmin(address addr) external view {
     if (_isAdmin(addr) == false) {
@@ -436,7 +445,7 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   address private _owner;
 
   /**
-   * @dev See {IERC721Baseline-owner}.
+   * @inheritdoc IERC721Baseline
    */
   function owner() external view returns (address) {
     return _owner;
@@ -454,7 +463,7 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   }
 
   /**
-   * @dev See {IERC721Baseline-transferOwnership}.
+   * @inheritdoc IERC721Baseline
    */
   function transferOwnership(address newOwner) external {
     if (_isAdmin(_msgSender()) == false) {
@@ -465,7 +474,7 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   }
 
   /**
-   * @dev See {IERC721Baseline-__transferOwnership}.
+   * @inheritdoc IERC721Baseline
    */
   function __transferOwnership(address newOwner) external onlyProxy {
     _transferOwnership(newOwner);
@@ -477,21 +486,21 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
    ************************************************/
 
   /**
-   * @dev See {IERC721Baseline-recover}.
+   * @inheritdoc IERC721Baseline
    */
   function recover(bytes32 hash, bytes memory signature) external view returns (address result) {
     return Utils.recover(Utils.toEthSignedMessageHash(hash), signature);
   }
 
   /**
-   * @dev See {IERC721Baseline-recoverCalldata}.
+   * @inheritdoc IERC721Baseline
    */
   function recoverCalldata(bytes32 hash, bytes calldata signature) external view returns (address result) {
     return Utils.recoverCalldata(Utils.toEthSignedMessageHash(hash), signature);
   }
 
   /**
-   * @dev See {IERC721Baseline-toString}.
+   * @inheritdoc IERC721Baseline
    */
   function toString(uint256 value) external pure returns (string memory) {
     return Utils.toString(value);
