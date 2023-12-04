@@ -18,7 +18,7 @@ interface IERC721Baseline is IERC721 {
   function VERSION() external view returns (string memory);
 
   /**
-   * Indicates an unauthorized operation or unauthorized access attempt.
+   * @dev Indicates an unauthorized operation or unauthorized access attempt.
    */
   error Unauthorized();
 
@@ -32,7 +32,7 @@ interface IERC721Baseline is IERC721 {
    * @dev This method MUST be called in the proxy constructor via delegatecall
    * to initialize the proxy with a name and symbol for the underlying ERC721.
    *
-   * Additionally this method sets the deployer as owner and admin for the proxy.
+   * Additionally this method sets the deployer as owner and admin of the proxy.
    *
    * @param name contract name
    * @param symbol contract symbol
@@ -115,7 +115,7 @@ interface IERC721Baseline is IERC721 {
    ************************************************/
 
   /**
-   * Indicates an invalid attempt to call a method from outside of the proxy.
+   * @dev Indicates an invalid attempt to call a method from outside of the proxy.
    */
   error NotProxy();
 

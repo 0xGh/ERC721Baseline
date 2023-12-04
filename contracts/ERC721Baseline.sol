@@ -448,7 +448,7 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
    * @param newOwner new owner address
    */
   function _transferOwnership(address newOwner) internal {
-     address oldOwner = _owner;
+    address oldOwner = _owner;
     _owner = newOwner;
     emit OwnershipTransferred(oldOwner, newOwner);
   }
