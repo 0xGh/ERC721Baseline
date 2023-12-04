@@ -8,7 +8,8 @@
   ],
   "scripts": {
     "test": "truffle test",
-    "test:gas": "GAS=true truffle test --reporter eth-gas-reporter"
+    "test:gas": "GAS=true truffle test --reporter eth-gas-reporter",
+    "docs": "node docs.js"
   },
   "keywords": [
     "ERC721",
@@ -23,6 +24,7 @@
     "eth-gas-reporter": "^0.2.25",
     "prettier": "^3.0.3",
     "prettier-plugin-solidity": "^1.2.0",
+    "solidity-docgen": "^0.6.0-beta.36",
     "truffle": "^5.11.2"
   },
   "dependencies": {
