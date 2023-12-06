@@ -28,7 +28,7 @@
     "truffle": "^5.11.2"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "5.0.0"
+    "@openzeppelin/contracts": "5.0.1"
   },
   "prettier": {
     "plugins": [

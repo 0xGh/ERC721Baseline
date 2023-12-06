@@ -199,7 +199,7 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   function royaltyInfo(
     uint256,
     uint256
-  ) external pure returns (address receiver, uint256 royaltyAmount) {
+  ) external pure returns (address, uint256) {
     return (address(0), 0);
   }
 
@@ -488,14 +488,14 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   /**
    * @inheritdoc IERC721Baseline
    */
-  function recover(bytes32 hash, bytes memory signature) external view returns (address result) {
+  function recover(bytes32 hash, bytes memory signature) external view returns (address) {
     return Utils.recover(Utils.toEthSignedMessageHash(hash), signature);
   }
 
   /**
    * @inheritdoc IERC721Baseline
    */
-  function recoverCalldata(bytes32 hash, bytes calldata signature) external view returns (address result) {
+  function recoverCalldata(bytes32 hash, bytes calldata signature) external view returns (address) {
     return Utils.recoverCalldata(Utils.toEthSignedMessageHash(hash), signature);
   }
 

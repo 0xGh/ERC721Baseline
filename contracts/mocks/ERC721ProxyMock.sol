@@ -77,8 +77,6 @@ contract ERC721ProxyMock is Proxy {
 
     require(_beforeTokenTransferHookEnabled, 'not enabled');
 
-    // @todo Try to alter state and make sure it is not reflected in the implementation.
-
     if (sender == to) {
       revert('Call to self');
     }

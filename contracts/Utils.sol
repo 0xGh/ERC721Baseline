@@ -12,8 +12,6 @@ library Utils {
    * ECDSA Utils
    ************************************************/
 
-  error InvalidSignature();
-
   /**
    * recover
    *

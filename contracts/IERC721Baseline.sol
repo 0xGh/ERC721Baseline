@@ -94,6 +94,8 @@ interface IERC721Baseline is IERC721 {
   /**
    * @notice Sets the token URI for a token ID.
    * @dev Emits EIP-4906's `MetadataUpdate` event with the `tokenId`.
+   * This method is internal and only the proxy contract can call it.
+   *
    *
    * @param tokenId token ID
    * @param tokenURI URI pointing to the metadata
@@ -102,6 +104,7 @@ interface IERC721Baseline is IERC721 {
 
   /**
    * @notice Returns the shared URI for the tokens.
+   * @dev This method is internal and only the proxy contract can call it.
    */
   function __sharedURI() external view returns (string memory);
 
@@ -110,6 +113,8 @@ interface IERC721Baseline is IERC721 {
    * @dev This method doesn't emit the EIP-4906's `BatchMetadataUpdate` event
    * because ERC721Baseline allows to mint any token ID, starting at any index.
    * The proxy should emit `BatchMetadataUpdate`.
+   *
+   * This method is internal and only the proxy contract can call it.
    *
    * @param sharedURI shared URI for the tokens
    */
@@ -126,6 +131,8 @@ interface IERC721Baseline is IERC721 {
    * @dev This method doesn't emit the EIP-4906 `BatchMetadataUpdate` event
    * because ERC721Baseline allows to mint any token ID, starting at any index.
    * The proxy should emit `BatchMetadataUpdate`.
+   *
+   * This method is internal and only the proxy contract can call it.
    *
    * @param baseURI shared base URI for the tokens
    */
@@ -195,15 +202,13 @@ interface IERC721Baseline is IERC721 {
 
   /**
    * @dev See {ERC721-_checkOnERC721Received}.
-   * This method is internal and only the proxy contract can call it.
    *
-   * @dev NOTE that this method accepts an additional first parameter that is the original transaction's `msg.sender`.
+   * NOTE: this method accepts an additional first parameter that is the original transaction's `msg.sender`.
    */
   function __checkOnERC721Received(address sender, address from, address to, uint256 tokenId, bytes memory data) external;
 
   /**
    * @dev See {ERC721-_isAuthorized}.
-   * This method is internal and only the proxy contract can call it.
    */
   function __isAuthorized(address owner, address spender, uint256 tokenId) external view returns (bool);
 
@@ -313,6 +318,11 @@ interface IERC721Baseline is IERC721 {
   /************************************************
    * Utils
    ************************************************/
+
+  /**
+   * @dev Indicates an invalid signature.
+   */
+  error InvalidSignature();
 
   /**
    * @notice Recovers the signer's address from a message digest `hash`, and the `signature`.
