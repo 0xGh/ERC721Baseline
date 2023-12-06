@@ -9,7 +9,6 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
  * @custom:version v0.1.0-alpha.3
  * @notice A baseline ERC721 contract implementation that exposes internal methods to a proxy instance.
  */
-
 interface IERC721Baseline is IERC721 {
 
   /**
@@ -43,6 +42,29 @@ interface IERC721Baseline is IERC721 {
   /************************************************
    * Metadata
    ************************************************/
+
+  /**
+   * Metadata > ERC-4906 events
+   */
+
+  /**
+   * @dev This event emits when the metadata of a token is changed.
+   * So that the third-party platforms such as NFT market could
+   * timely update the images and related attributes of the NFT.
+   *
+   * @param _tokenId the token ID being updated
+   */
+  event MetadataUpdate(uint256 _tokenId);
+
+  /**
+   * @dev This event emits when the metadata of a range of tokens is changed.
+   * So that the third-party platforms such as NFT market could
+   * timely update the images and related attributes of the NFTs.
+   *
+   * @param _fromTokenId the starting token ID
+   * @param _toTokenId the ending token ID
+   */
+  event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
 
   /**
    * @notice The total minted supply.

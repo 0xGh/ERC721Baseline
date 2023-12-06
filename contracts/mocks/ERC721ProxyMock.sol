@@ -9,7 +9,6 @@ import {IERC721Baseline} from "../IERC721Baseline.sol";
 
 /// @title {title}
 /// @author {name}
-
 contract ERC721ProxyMock is Proxy {
 
   IERC721Baseline baseline = IERC721Baseline(address(this));
