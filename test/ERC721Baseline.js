@@ -120,6 +120,33 @@ contract(
           await expectRevert(proxyDelegate[method](...args), "NotProxy");
         });
       });
+
+      it("is not affected by state changes and multiple proxies", async () => {
+        assert.equal(
+          false,
+          await implementation.isAdmin(await proxyDelegate.owner()),
+        );
+
+        // Deploy another proxy
+        const deployer2 = accounts[0];
+        const proxy2 = await ERC721ProxyMock.new(
+          implementation.address,
+          "Test",
+          "TEST",
+          { from: deployer2 },
+        );
+        const proxy2Delegate = await ERC721Baseline.at(proxy2.address);
+
+        // implementation is not affected
+        assert.equal(
+          false,
+          await implementation.isAdmin(await proxy2Delegate.owner()),
+        );
+
+        // other proxies are not affected
+        assert.equal(false, await proxyDelegate.isAdmin(deployer2));
+        assert.equal(false, await proxy2Delegate.isAdmin(deployer));
+      });
     });
 
     describe("Proxy", () => {
