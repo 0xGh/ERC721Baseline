@@ -374,6 +374,90 @@ contract(
         });
       });
 
+      describe("Metadata", () => {
+        it("sets name and symbols", async () => {
+          assert.equal("Test", await proxyDelegate.name());
+          assert.equal("TEST", await proxyDelegate.symbol());
+        });
+
+        it("updates totalSupply correctly", async () => {
+          await proxy.onlyProxy_mint(user, 3);
+          assert.equal(1, await proxyDelegate.totalSupply());
+          await proxy.onlyProxy_burn(3, { from: user });
+          assert.equal(0, await proxyDelegate.totalSupply());
+        });
+
+        describe("token URI", () => {
+          const tokenId = 3;
+
+          beforeEach(async () => {
+            await proxy.onlyProxy_mint(user, tokenId);
+          });
+
+          it("throws if the token does not exist", async () => {
+            await expectRevert(
+              proxyDelegate.tokenURI(100),
+              "ERC721NonexistentToken(uint256)",
+            );
+          });
+
+          it("returns empty string when nothing is set", async () => {
+            assert.equal("", await proxyDelegate.tokenURI(tokenId));
+          });
+
+          it("returns token-specific URI when set", async () => {
+            const anotherTokenId = tokenId + 1;
+            const uri = "ipfs://test";
+
+            await proxy.onlyProxy_mint(user, anotherTokenId, uri);
+
+            assert.equal(uri, await proxyDelegate.tokenURI(anotherTokenId));
+            assert.equal(uri, await proxyDelegate.__tokenURI(anotherTokenId));
+
+            assert.equal("", await proxyDelegate.tokenURI(tokenId));
+          });
+
+          it("can update token-specific URI and emits MetadataUpdate", async () => {
+            const uri = "ipfs://updated";
+            const receipt = await proxy.onlyProxy_setTokenURI(tokenId, uri);
+
+            await expectEvent.inTransaction(
+              receipt.tx,
+              proxyDelegate,
+              "MetadataUpdate",
+              {
+                _tokenId: String(tokenId),
+              },
+            );
+
+            assert.equal(uri, await proxyDelegate.tokenURI(tokenId));
+            assert.equal(uri, await proxyDelegate.__tokenURI(tokenId));
+          });
+
+          it("can define shared URI", async () => {
+            const uri = "ipfs://shared";
+
+            const anotherTokenId = tokenId + 1;
+            await proxy.onlyProxy_mint(user, anotherTokenId);
+
+            await proxy.onlyProxy_setSharedURI(uri);
+
+            assert.equal(uri, await proxyDelegate.tokenURI(anotherTokenId));
+            assert.equal(
+              await proxyDelegate.tokenURI(tokenId),
+              await proxyDelegate.tokenURI(anotherTokenId),
+            );
+          });
+
+          it("can set base URI", async () => {
+            const uri = "ipfs://base/";
+            await proxy.onlyProxy_setBaseURI(uri);
+
+            assert.equal(uri + tokenId, await proxyDelegate.tokenURI(tokenId));
+          });
+        });
+      });
+
       describe("Utils", () => {
         describe("recover", () => {
           const signer = web3.eth.accounts.create();

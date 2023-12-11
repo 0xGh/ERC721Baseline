@@ -14,7 +14,6 @@ import {Utils} from "./Utils.sol";
  * @custom:version v0.1.0-alpha.3
  * @notice A baseline ERC721 contract implementation that exposes internal methods to a proxy instance.
  */
-
 contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
 
   /**
@@ -39,6 +38,9 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
    * Supported Interfaces
    ************************************************/
 
+  /**
+   * @inheritdoc IERC165
+   */
   function supportsInterface(bytes4 interfaceId) public view override(IERC165, ERC721) returns (bool) {
     return (
       interfaceId == /* NFT Royalty Standard */ type(IERC2981).interfaceId ||
@@ -104,8 +106,6 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   function symbol() public view override returns (string memory) {
     return _symbol;
   }
-
-  event MetadataUpdate(uint256 tokenId);
 
   /**
    * Metadata > Token URI
@@ -199,7 +199,7 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   function royaltyInfo(
     uint256,
     uint256
-  ) external pure returns (address receiver, uint256 royaltyAmount) {
+  ) external pure returns (address, uint256) {
     return (address(0), 0);
   }
 
@@ -488,14 +488,14 @@ contract ERC721Baseline is ERC721, IERC2981, IERC721Baseline {
   /**
    * @inheritdoc IERC721Baseline
    */
-  function recover(bytes32 hash, bytes memory signature) external view returns (address result) {
+  function recover(bytes32 hash, bytes memory signature) external view returns (address) {
     return Utils.recover(Utils.toEthSignedMessageHash(hash), signature);
   }
 
   /**
    * @inheritdoc IERC721Baseline
    */
-  function recoverCalldata(bytes32 hash, bytes calldata signature) external view returns (address result) {
+  function recoverCalldata(bytes32 hash, bytes calldata signature) external view returns (address) {
     return Utils.recoverCalldata(Utils.toEthSignedMessageHash(hash), signature);
   }
 

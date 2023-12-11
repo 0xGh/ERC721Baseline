@@ -9,7 +9,6 @@ import {IERC721Baseline} from "../IERC721Baseline.sol";
 
 /// @title {title}
 /// @author {name}
-
 contract ERC721ProxyMock is Proxy {
 
   IERC721Baseline baseline = IERC721Baseline(address(this));
@@ -77,8 +76,6 @@ contract ERC721ProxyMock is Proxy {
     emit BeforeTokenTransferCalled();
 
     require(_beforeTokenTransferHookEnabled, 'not enabled');
-
-    // @todo Try to alter state and make sure it is not reflected in the implementation.
 
     if (sender == to) {
       revert('Call to self');

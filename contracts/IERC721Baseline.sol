@@ -9,7 +9,6 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
  * @custom:version v0.1.0-alpha.3
  * @notice A baseline ERC721 contract implementation that exposes internal methods to a proxy instance.
  */
-
 interface IERC721Baseline is IERC721 {
 
   /**
@@ -45,6 +44,29 @@ interface IERC721Baseline is IERC721 {
    ************************************************/
 
   /**
+   * Metadata > ERC-4906 events
+   */
+
+  /**
+   * @dev This event emits when the metadata of a token is changed.
+   * So that the third-party platforms such as NFT market could
+   * timely update the images and related attributes of the NFT.
+   *
+   * @param _tokenId the token ID being updated
+   */
+  event MetadataUpdate(uint256 _tokenId);
+
+  /**
+   * @dev This event emits when the metadata of a range of tokens is changed.
+   * So that the third-party platforms such as NFT market could
+   * timely update the images and related attributes of the NFTs.
+   *
+   * @param _fromTokenId the starting token ID
+   * @param _toTokenId the ending token ID
+   */
+  event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
+
+  /**
    * @notice The total minted supply.
    * @dev The supply is decreased when a token is burned.
    * Generally it is recommended to use a separate counter variable to track the supply available for minting.
@@ -72,6 +94,8 @@ interface IERC721Baseline is IERC721 {
   /**
    * @notice Sets the token URI for a token ID.
    * @dev Emits EIP-4906's `MetadataUpdate` event with the `tokenId`.
+   * This method is internal and only the proxy contract can call it.
+   *
    *
    * @param tokenId token ID
    * @param tokenURI URI pointing to the metadata
@@ -80,6 +104,7 @@ interface IERC721Baseline is IERC721 {
 
   /**
    * @notice Returns the shared URI for the tokens.
+   * @dev This method is internal and only the proxy contract can call it.
    */
   function __sharedURI() external view returns (string memory);
 
@@ -88,6 +113,8 @@ interface IERC721Baseline is IERC721 {
    * @dev This method doesn't emit the EIP-4906's `BatchMetadataUpdate` event
    * because ERC721Baseline allows to mint any token ID, starting at any index.
    * The proxy should emit `BatchMetadataUpdate`.
+   *
+   * This method is internal and only the proxy contract can call it.
    *
    * @param sharedURI shared URI for the tokens
    */
@@ -104,6 +131,8 @@ interface IERC721Baseline is IERC721 {
    * @dev This method doesn't emit the EIP-4906 `BatchMetadataUpdate` event
    * because ERC721Baseline allows to mint any token ID, starting at any index.
    * The proxy should emit `BatchMetadataUpdate`.
+   *
+   * This method is internal and only the proxy contract can call it.
    *
    * @param baseURI shared base URI for the tokens
    */
@@ -173,15 +202,13 @@ interface IERC721Baseline is IERC721 {
 
   /**
    * @dev See {ERC721-_checkOnERC721Received}.
-   * This method is internal and only the proxy contract can call it.
    *
-   * @dev NOTE that this method accepts an additional first parameter that is the original transaction's `msg.sender`.
+   * NOTE: this method accepts an additional first parameter that is the original transaction's `msg.sender`.
    */
   function __checkOnERC721Received(address sender, address from, address to, uint256 tokenId, bytes memory data) external;
 
   /**
    * @dev See {ERC721-_isAuthorized}.
-   * This method is internal and only the proxy contract can call it.
    */
   function __isAuthorized(address owner, address spender, uint256 tokenId) external view returns (bool);
 
@@ -291,6 +318,11 @@ interface IERC721Baseline is IERC721 {
   /************************************************
    * Utils
    ************************************************/
+
+  /**
+   * @dev Indicates an invalid signature.
+   */
+  error InvalidSignature();
 
   /**
    * @notice Recovers the signer's address from a message digest `hash`, and the `signature`.

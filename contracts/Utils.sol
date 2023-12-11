@@ -7,13 +7,10 @@ pragma solidity 0.8.21;
  * @custom:version v0.1.0-alpha.3
  * @notice Utilities used in ERC721Baseline.
  */
-
 library Utils {
   /************************************************
    * ECDSA Utils
    ************************************************/
-
-  error InvalidSignature();
 
   /**
    * recover
