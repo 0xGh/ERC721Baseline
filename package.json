@@ -1,6 +1,6 @@
 {
   "name": "erc721baseline",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "description": "A baseline ERC721 contract implementation that exposes internal methods to a proxy instance",
   "files": [
     "contracts/*.sol",
