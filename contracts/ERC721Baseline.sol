@@ -7,7 +7,7 @@ import {IERC721Baseline} from "./IERC721Baseline.sol";
 
 /**
  * @title ERC721BaselineImplementation
- * @custom:version v0.1.0-alpha.4
+ * @custom:version v0.1.0-alpha.5
  * @notice A baseline ERC721 contract implementation that exposes internal methods to a proxy instance.
  */
 contract ERC721Baseline is Proxy {

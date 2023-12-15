@@ -4,7 +4,7 @@ pragma solidity 0.8.21;
 
 /**
  * @title Utils
- * @custom:version v0.1.0-alpha.4
+ * @custom:version v0.1.0-alpha.5
  * @notice Utilities used in ERC721Baseline.
  */
 library Utils {
