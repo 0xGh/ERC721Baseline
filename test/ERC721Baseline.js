@@ -1,4 +1,4 @@
-const ERC721Baseline = artifacts.require("ERC721Baseline");
+const ERC721Baseline = artifacts.require("ERC721BaselineImplementation");
 const ERC721ProxyMock = artifacts.require("ERC721ProxyMock");
 const ERC721ConstructorAttackerMock = artifacts.require(
   "ERC721ConstructorAttackerMock",
