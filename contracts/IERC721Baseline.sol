@@ -3,13 +3,14 @@
 pragma solidity 0.8.21;
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {IERC2981} from "@openzeppelin/contracts/interfaces/IERC2981.sol";
 
 /**
  * @title IERC721Baseline
  * @custom:version v0.1.0-alpha.5
  * @notice A baseline ERC721 contract implementation that exposes internal methods to a proxy instance.
  */
-interface IERC721Baseline is IERC721 {
+interface IERC721Baseline is IERC721, IERC2981 {
 
   /**
    * @dev The version of the implementation contract.
@@ -137,6 +138,30 @@ interface IERC721Baseline is IERC721 {
    * @param baseURI shared base URI for the tokens
    */
   function __setBaseURI(string calldata baseURI) external;
+
+
+  /************************************************
+   * Royalties
+   ************************************************/
+
+  /**
+   * @dev The address of the royalties receiver.
+   */
+  function __royaltiesReceiver() external view returns (address);
+
+  /**
+   * @dev The royalties rate in basis points (100 bps = 1%).
+   */
+  function __royaltiesBps() external view returns (uint256);
+
+  /**
+   * @notice Configures royalties receiver and bps for all the tokens.
+   * @dev Bps stants for basis points where 100 bps = 1%.
+   *
+   * @param receiver address for the royalties receiver
+   * @param bps (basis points) royalties rate
+   */
+  function __configureRoyalties(address receiver, uint256 bps) external;
 
 
   /************************************************

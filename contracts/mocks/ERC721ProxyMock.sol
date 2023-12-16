@@ -109,4 +109,16 @@ contract ERC721ProxyMock is ERC721Baseline {
   function onlyProxy_transferOwnership(address newOwner) external {
     baseline().__transferOwnership(newOwner);
   }
+
+  function onlyProxy_configureRoyalties(address receiver, uint256 bps) external {
+    baseline().__configureRoyalties(receiver, bps);
+  }
+
+  function uri(uint256 tokenId) external view returns (string memory) {
+    return baseline().__tokenURI(tokenId);
+  }
+
+  function impl() external view returns (address) {
+    return this.implementation();
+  }
 }

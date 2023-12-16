@@ -4,7 +4,6 @@ pragma solidity 0.8.21;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
-import {IERC2981} from "@openzeppelin/contracts/interfaces/IERC2981.sol";
 import {IERC721Baseline} from "./IERC721Baseline.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {Utils} from "./Utils.sol";
@@ -14,7 +13,7 @@ import {Utils} from "./Utils.sol";
  * @custom:version v0.1.0-alpha.5
  * @notice A baseline ERC721 contract implementation that exposes internal methods to a proxy instance.
  */
-contract ERC721BaselineImplementation is ERC721, IERC2981, IERC721Baseline {
+contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
 
   /**
    * @dev The version of the implementation contract.
@@ -43,7 +42,7 @@ contract ERC721BaselineImplementation is ERC721, IERC2981, IERC721Baseline {
    */
   function supportsInterface(bytes4 interfaceId) public view override(IERC165, ERC721) returns (bool) {
     return (
-      interfaceId == /* NFT Royalty Standard */ type(IERC2981).interfaceId ||
+      interfaceId == /* NFT Royalty Standard */ bytes4(0x2a55205a) ||
       interfaceId == /* Metadata Update Extension */ bytes4(0x49064906) ||
       interfaceId == type(IERC721Baseline).interfaceId ||
       super.supportsInterface(interfaceId)
@@ -190,19 +189,39 @@ contract ERC721BaselineImplementation is ERC721, IERC2981, IERC721Baseline {
    ************************************************/
 
   /**
-   * See `royaltyInfo` in the proxy contract if defined.
-   * ERC721Baseline defaults to 0% royalties
-   * and therefore the method must be implemented again in the proxy contract in order to customize royalties.
-   *
-   * @inheritdoc IERC2981
+   * @inheritdoc IERC721Baseline
+   */
+  address public __royaltiesReceiver;
+
+  /**
+   * @inheritdoc IERC721Baseline
+   */
+  uint256 public __royaltiesBps;
+
+  /**
+   * @dev See {IERC2981-royaltyInfo}.
    */
   function royaltyInfo(
     uint256,
-    uint256
-  ) external pure returns (address, uint256) {
+    uint256 salePrice
+  ) external view returns (address, uint256) {
+    if (__royaltiesBps > 0 && __royaltiesReceiver != address(0)) {
+      return (__royaltiesReceiver, salePrice * __royaltiesBps / 10000);
+    }
     return (address(0), 0);
   }
 
+  /**
+   * @inheritdoc IERC721Baseline
+   */
+  function __configureRoyalties(address receiver, uint256 bps) external onlyProxy {
+    if (receiver != __royaltiesReceiver) {
+      __royaltiesReceiver = receiver;
+    }
+    if (bps != __royaltiesBps) {
+      __royaltiesBps = bps;
+    }
+  }
 
   /************************************************
    * Internal ERC721 methods exposed to the proxy
