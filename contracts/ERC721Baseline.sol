@@ -7,7 +7,7 @@ import {IERC721Baseline} from "./IERC721Baseline.sol";
 
 /**
  * @title ERC721Baseline
- * @custom:version v0.1.0-alpha.5
+ * @custom:version v0.1.0-alpha.6
  * @notice A minimal proxy contract for ERC721BaselineImplementation.
  *
  * @dev !!WARNING!! Be careful when defining variables in your proxy as these might clash with the implementation ones.
