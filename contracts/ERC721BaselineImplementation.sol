@@ -10,7 +10,7 @@ import {Utils} from "./Utils.sol";
 
 /**
  * @title ERC721BaselineImplementation
- * @custom:version v0.1.0-alpha.6
+ * @custom:version v0.1.0-alpha.7
  * @notice A baseline ERC721 contract implementation that exposes internal methods to a proxy instance.
  */
 contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
@@ -18,7 +18,7 @@ contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
   /**
    * @dev The version of the implementation contract.
    */
-  string public constant VERSION = "0.1.0-alpha.6";
+  string public constant VERSION = "0.1.0-alpha.7";
 
   constructor() ERC721("", "") {}
 

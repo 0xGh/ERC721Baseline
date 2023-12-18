@@ -7,7 +7,7 @@ import {IERC2981} from "@openzeppelin/contracts/interfaces/IERC2981.sol";
 
 /**
  * @title IERC721Baseline
- * @custom:version v0.1.0-alpha.6
+ * @custom:version v0.1.0-alpha.7
  * @notice A baseline ERC721 contract implementation that exposes internal methods to a proxy instance.
  */
 interface IERC721Baseline is IERC721, IERC2981 {
