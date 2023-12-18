@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.21;
 
@@ -32,6 +32,7 @@ contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
     }
     _;
   }
+
 
   /************************************************
    * Supported Interfaces
@@ -147,10 +148,6 @@ contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
     __baseURI = baseURI;
   }
 
-  function _baseURI() internal view override returns (string memory) {
-    return __baseURI;
-  }
-
   /**
    * @notice Returns the URI associated with a token ID.
    *
@@ -178,7 +175,7 @@ contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
     }
 
     if (bytes(__baseURI).length > 0) {
-      return super.tokenURI(tokenId);
+      return string.concat(__baseURI, this.toString(tokenId));
     }
 
     return "";

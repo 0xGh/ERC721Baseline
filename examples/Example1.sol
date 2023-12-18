@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.21;
 
@@ -11,11 +11,15 @@ import {IERC721Baseline} from "erc721baseline/contracts/IERC721Baseline.sol";
  * This contract is just an example and MUST NOT be used as a reference
  * implementation for a proxy/your project!
  *
- * Be careful when defining variables in your proxy as these might clash with the implementation ones.
+ * Be careful when defining variables in your proxy
+ * as these might clash with the implementation ones.
  *
- * ERC721Baseline.sol and this example make the assumption that you will define storage slots similarly to EIP-1967 (https://eips.ethereum.org/EIPS/eip-1967)
- * defining a struct with your variables and storing it at a specific location eg. bytes32(uint256(keccak256("erc721baseline.storage")) - 1)).
- * Alternatively you can fork ERC721Baseline.sol and add a gap at the beginning, although this approach is discouraged.
+ * ERC721Baseline.sol and this example make the assumption that you will
+ * define storage slots similarly to EIP-1967 (https://eips.ethereum.org/EIPS/eip-1967)
+ * using a struct with your variables and storing it at a specific location
+ * eg. bytes32(uint256(keccak256("erc721baseline.storage")) - 1)).
+ * Alternatively you can fork ERC721Baseline.sol and add a gap at the beginning,
+ * although this approach is discouraged.
  */
 
 /**
@@ -23,8 +27,9 @@ import {IERC721Baseline} from "erc721baseline/contracts/IERC721Baseline.sol";
  * @author {author}
  *
  * @dev This contract implements an example ERC721 proxy with some custom functionality.
- * What is not implemented here is delegated to ERC721BaselineImplementation which will provide standard ERC721 functionality
- * along with some custom functionality (see ERC721BaselineImplementation.sol implementation).
+ * What is not implemented here is delegated to ERC721BaselineImplementation
+ * which will provide standard ERC721 functionality
+ * along with some custom functionality (see ERC721BaselineImplementation.sol).
  */
 contract Example1 is ERC721Baseline {
 

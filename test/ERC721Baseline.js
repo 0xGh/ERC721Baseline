@@ -372,6 +372,27 @@ contract(
           assert.equal("altered", await proxy.__baseURI());
           assert.equal("", await implementation.__baseURI());
         });
+
+        it("_update override does not interfere with __update onlyProxy method", async () => {
+          await proxy.toggleBeforeTokenTransferHook();
+
+          const tokenId = 1;
+          await proxy.adminMint(user, tokenId);
+
+          const anotherUser = accounts[0];
+
+          const receipt = await proxy.onlyProxy_update(
+            anotherUser,
+            tokenId,
+            ZERO_ADDRESS,
+          );
+
+          await expectEvent.notEmitted.inTransaction(
+            receipt.tx,
+            proxy,
+            "BeforeTokenTransferCalled",
+          );
+        });
       });
 
       describe("Metadata", () => {
@@ -455,6 +476,49 @@ contract(
 
             assert.equal(uri + tokenId, await proxyDelegate.tokenURI(tokenId));
           });
+        });
+      });
+
+      describe("Royalties", () => {
+        it("returns zero address and 0 amount when unset", async () => {
+          const { 0: receiver, 1: amount } = await proxyDelegate.royaltyInfo(
+            10,
+            100000,
+          );
+          assert.equal(receiver, ZERO_ADDRESS);
+          assert.equal(amount, 0);
+        });
+
+        it("returns zero address and 0 amount when only one is set", async () => {
+          await proxy.onlyProxy_configureRoyalties(ZERO_ADDRESS, 1000);
+
+          let { 0: receiver, 1: amount } = await proxyDelegate.royaltyInfo(
+            10,
+            100000,
+          );
+          assert.equal(receiver, ZERO_ADDRESS);
+          assert.equal(amount, 0);
+
+          await proxy.onlyProxy_configureRoyalties(deployer, 0);
+
+          ({ 0: receiver, 1: amount } = await proxyDelegate.royaltyInfo(
+            10,
+            100000,
+          ));
+          assert.equal(receiver, ZERO_ADDRESS);
+          assert.equal(amount, 0);
+        });
+
+        it("returns right amount of royalties when configured", async () => {
+          await proxy.onlyProxy_configureRoyalties(deployer, 1500);
+
+          const salePrice = web3.utils.toWei("12.25");
+          const { 0: receiver, 1: amount } = await proxyDelegate.royaltyInfo(
+            10,
+            salePrice,
+          );
+          assert.equal(receiver, deployer);
+          assert.equal(amount, web3.utils.toWei(String(12.25 * 0.15)));
         });
       });
 

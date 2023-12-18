@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.21;
 
@@ -10,10 +10,15 @@ import {IERC721Baseline} from "./IERC721Baseline.sol";
  * @custom:version v0.1.0-alpha.6
  * @notice A minimal proxy contract for ERC721BaselineImplementation.
  *
- * @dev !!WARNING!! Be careful when defining variables in your proxy as these might clash with the implementation ones.
- * This contract makes the assumption that you will define storage slots similarly to EIP-1967 (https://eips.ethereum.org/EIPS/eip-1967)
- * defining a struct with your variables and storing it at a specific location eg. bytes32(uint256(keccak256("erc721baseline.storage")) - 1)).
- * Alternatively you can fork this contract and add a gap at the beginning, although this approach is discouraged.
+ * @dev !!WARNING!! Be careful when defining variables in your proxy
+ * as these might clash with the implementation ones.
+ *
+ * This contract makes the assumption that you will define storage slots
+ * similarly to EIP-1967 (https://eips.ethereum.org/EIPS/eip-1967)
+ * defining a struct with your variables and storing it at a specific location
+ * eg. bytes32(uint256(keccak256("erc721baseline.storage")) - 1)).
+ * Alternatively you can fork this contract and add a gap at the beginning,
+ * although this approach is discouraged.
  */
 contract ERC721Baseline is Proxy {
 
