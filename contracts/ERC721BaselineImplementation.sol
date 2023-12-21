@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.21;
 
-import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {IERC721Baseline} from "./IERC721Baseline.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
@@ -13,14 +13,98 @@ import {Utils} from "./Utils.sol";
  * @custom:version v0.1.0-alpha.7
  * @notice A baseline ERC721 contract implementation that exposes internal methods to a proxy instance.
  */
-contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
+contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
 
   /**
-   * @dev The version of the implementation contract.
+   * @dev ERC721Baseline uses ERC-7201 (Namespaced Storage Layout) for storage
+   * to prevent collisions with proxies storage.
+   * Proxies are encouraged, but not required to, use a similar pattern for storage.
+   * See https://eips.ethereum.org/EIPS/eip-7201.
+   *
+   * @custom:storage-location erc7201:erc721baseline.implementation.storage
    */
-  string public constant VERSION = "0.1.0-alpha.7";
+  struct ERC721BaselineStorage {
+    string VERSION;
 
-  constructor() ERC721("", "") {}
+    /**
+     * @dev Tracks the proxy initialization state.
+     */
+    bool _initialized;
+
+    /**
+     * Metadata
+     */
+    uint256 totalSupply;
+    string _name;
+    string _symbol;
+
+    mapping(uint256 => string) __tokenURI;
+    string __sharedURI;
+    string __baseURI;
+
+    /**
+     * Royalties
+     */
+    address __royaltiesReceiver;
+    uint256 __royaltiesBps;
+
+    /**
+     * @dev Tracks whether the proxy's `_beforeTokenTransfer` hook is enabled or not.
+     * When enabled, this contract will call the hook when ERC721 calls `_update`.
+     */
+    bool _beforeTokenTransferHookEnabled;
+
+    /**
+     * Access Control
+     */
+
+    /**
+     * @dev Tracks the contract admins.
+     */
+    mapping(address => bool) _admins;
+    /**
+     * @dev Tracks the contract owner.
+     */
+    address _owner;
+  }
+
+  /**
+   * @dev The ERC7-201 storage slot. See https://eips.ethereum.org/EIPS/eip-7201.
+   * The namespace is:
+   * erc721baseline.implementation.storage
+   * keccak256(abi.encode(uint256(keccak256("erc721baseline.implementation.storage")) - 1)) & ~bytes32(uint256(0xff))
+   */
+  bytes32 private constant ERC721BaselineStorageLocation = 0xd70e9a647412bf72add39fd1ab5a6a89bfb0d778061be5e3d13cfa60d9d90b00;
+
+  /**
+   * @dev Convenience method to access storage at ERC721BaselineStorageLocation location.
+   *
+   * Usage:
+   *
+   *  ERC721BaselineStorage storage $ = _getStorage();
+   *
+   *  if ($.__royaltiesReceiver != address(0)) {
+   *    $.__royaltiesReceiver = address(0);
+   *  }
+   *
+   * @return $ a reference to the storage slot for reading and writing
+   */
+  function _getStorage() private pure returns (ERC721BaselineStorage storage $) {
+    assembly {
+      $.slot := ERC721BaselineStorageLocation
+    }
+  }
+
+  constructor() {
+    _getStorage().VERSION = "0.1.0-alpha.7";
+  }
+
+  /**
+   * @inheritdoc IERC721Baseline
+   */
+  function VERSION() external view returns (string memory) {
+    return _getStorage().VERSION;
+  }
 
   /**
    * @notice Enables a proxy to call selected methods that are implemented in this contract.
@@ -41,7 +125,7 @@ contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
   /**
    * @inheritdoc IERC165
    */
-  function supportsInterface(bytes4 interfaceId) public view override(IERC165, ERC721) returns (bool) {
+  function supportsInterface(bytes4 interfaceId) public view override(IERC165, ERC721Upgradeable) returns (bool) {
     return (
       interfaceId == /* NFT Royalty Standard */ bytes4(0x2a55205a) ||
       interfaceId == /* Metadata Update Extension */ bytes4(0x49064906) ||
@@ -56,25 +140,22 @@ contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
    ************************************************/
 
   /**
-   * @dev Tracks the initialization state.
-   */
-  bool private _initialized;
-
-  /**
    * @inheritdoc IERC721Baseline
    */
   function initialize(string memory name, string memory symbol) external {
+    ERC721BaselineStorage storage $ = _getStorage();
+
     if (
-      _initialized == true ||
+      $._initialized == true ||
       address(this).code.length != 0
     ) {
       revert Unauthorized();
     }
 
-    _initialized = true;
+    $._initialized = true;
 
-    _name = name;
-    _symbol = symbol;
+    $._name = name;
+    $._symbol = symbol;
 
     _setAdmin(_msgSender(), true);
     _transferOwnership(_msgSender());
@@ -88,23 +169,22 @@ contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
   /**
    * @inheritdoc IERC721Baseline
    */
-  uint256 public totalSupply;
-
-  string private _name;
-  string private _symbol;
+  function totalSupply() external view returns (uint256) {
+    return _getStorage().totalSupply;
+  }
 
   /**
    * @dev See {IERC721Metadata-name}.
    */
   function name() public view override returns (string memory) {
-    return _name;
+    return _getStorage()._name;
   }
 
   /**
    * @dev See {IERC721Metadata-symbol}.
    */
   function symbol() public view override returns (string memory) {
-    return _symbol;
+    return _getStorage()._symbol;
   }
 
   /**
@@ -114,38 +194,44 @@ contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
   /**
    * @inheritdoc IERC721Baseline
    */
-  mapping(uint256 => string) public __tokenURI;
+  function __tokenURI(uint256 tokenId) external view returns (string memory) {
+    return _getStorage().__tokenURI[tokenId];
+  }
 
   /**
    * @inheritdoc IERC721Baseline
    */
   function __setTokenURI(uint256 tokenId, string calldata tokenURI) external onlyProxy {
-    __tokenURI[tokenId] = tokenURI;
+    _getStorage().__tokenURI[tokenId] = tokenURI;
     emit MetadataUpdate(tokenId);
   }
 
   /**
    * @inheritdoc IERC721Baseline
    */
-  string public __sharedURI;
-
-  /**
-   * @inheritdoc IERC721Baseline
-   */
-  function __setSharedURI(string calldata sharedURI) external onlyProxy {
-    __sharedURI = sharedURI;
+  function __sharedURI() external view returns (string memory) {
+    return _getStorage().__sharedURI;
   }
 
   /**
    * @inheritdoc IERC721Baseline
    */
-  string public __baseURI;
+  function __setSharedURI(string calldata sharedURI) external onlyProxy {
+    _getStorage().__sharedURI = sharedURI;
+  }
+
+  /**
+   * @inheritdoc IERC721Baseline
+   */
+  function __baseURI() external view returns (string memory) {
+    return _getStorage().__baseURI;
+  }
 
   /**
    * @inheritdoc IERC721Baseline
    */
   function __setBaseURI(string calldata baseURI) external onlyProxy {
-    __baseURI = baseURI;
+    _getStorage().__baseURI = baseURI;
   }
 
   /**
@@ -164,18 +250,20 @@ contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
   function tokenURI(uint256 tokenId) public view override returns (string memory) {
     _requireOwned(tokenId);
 
-    string memory uri = __tokenURI[tokenId];
+    ERC721BaselineStorage storage $ = _getStorage();
+
+    string memory uri = $.__tokenURI[tokenId];
 
     if (bytes(uri).length > 0) {
       return uri;
     }
 
-    if (bytes(__sharedURI).length > 0) {
-      return __sharedURI;
+    if (bytes($.__sharedURI).length > 0) {
+      return $.__sharedURI;
     }
 
-    if (bytes(__baseURI).length > 0) {
-      return string.concat(__baseURI, this.toString(tokenId));
+    if (bytes($.__baseURI).length > 0) {
+      return string.concat($.__baseURI, this.toString(tokenId));
     }
 
     return "";
@@ -188,12 +276,16 @@ contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
   /**
    * @inheritdoc IERC721Baseline
    */
-  address public __royaltiesReceiver;
+  function __royaltiesReceiver() external view returns (address) {
+    return _getStorage().__royaltiesReceiver;
+  }
 
   /**
    * @inheritdoc IERC721Baseline
    */
-  uint256 public __royaltiesBps;
+  function __royaltiesBps() external view returns (uint256) {
+    return _getStorage().__royaltiesBps;
+  }
 
   /**
    * @dev See {IERC2981-royaltyInfo}.
@@ -202,9 +294,12 @@ contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
     uint256,
     uint256 salePrice
   ) external view returns (address, uint256) {
-    if (__royaltiesBps > 0 && __royaltiesReceiver != address(0)) {
-      return (__royaltiesReceiver, salePrice * __royaltiesBps / 10000);
+    ERC721BaselineStorage storage $ = _getStorage();
+
+    if ($.__royaltiesBps > 0 && $.__royaltiesReceiver != address(0)) {
+      return ($.__royaltiesReceiver, salePrice * $.__royaltiesBps / 10000);
     }
+
     return (address(0), 0);
   }
 
@@ -212,11 +307,14 @@ contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
    * @inheritdoc IERC721Baseline
    */
   function __configureRoyalties(address receiver, uint256 bps) external onlyProxy {
-    if (receiver != __royaltiesReceiver) {
-      __royaltiesReceiver = receiver;
+    ERC721BaselineStorage storage $ = _getStorage();
+
+    if (receiver != $.__royaltiesReceiver) {
+      $.__royaltiesReceiver = receiver;
     }
-    if (bps != __royaltiesBps) {
-      __royaltiesBps = bps;
+
+    if (bps != $.__royaltiesBps) {
+      $.__royaltiesBps = bps;
     }
   }
 
@@ -242,7 +340,7 @@ contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
    * @inheritdoc IERC721Baseline
    */
   function __mint(address to, uint256 tokenId) external onlyProxy {
-    totalSupply += 1;
+    _getStorage().totalSupply += 1;
     _mint(to, tokenId);
   }
 
@@ -250,19 +348,24 @@ contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
    * @inheritdoc IERC721Baseline
    */
   function __mint(address to, uint256 tokenId, string calldata tokenURI) external onlyProxy {
-    totalSupply += 1;
+    ERC721BaselineStorage storage $ = _getStorage();
+
+    $.totalSupply += 1;
     _mint(to, tokenId);
-    __tokenURI[tokenId] = tokenURI;
+    $.__tokenURI[tokenId] = tokenURI;
   }
 
   /**
    * @inheritdoc IERC721Baseline
    */
   function __burn(uint256 tokenId) external onlyProxy {
-    totalSupply -= 1;
+    ERC721BaselineStorage storage $ = _getStorage();
+
+    $.totalSupply -= 1;
     _burn(tokenId);
-    if (bytes(__tokenURI[tokenId]).length > 0) {
-      delete __tokenURI[tokenId];
+
+    if (bytes($.__tokenURI[tokenId]).length > 0) {
+      delete $.__tokenURI[tokenId];
     }
   }
 
@@ -274,16 +377,10 @@ contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
   }
 
   /**
-   * @dev Tracks whether the proxy's `_beforeTokenTransfer` hook is enabled or not.
-   * When enabled, this contract will call the hook when ERC721 calls `_update`.
-   */
-  bool private _beforeTokenTransferHookEnabled;
-
-  /**
    * @inheritdoc IERC721Baseline
    */
   function __setBeforeTokenTransferHookEnabled(bool enabled) external onlyProxy {
-    _beforeTokenTransferHookEnabled = enabled;
+    _getStorage()._beforeTokenTransferHookEnabled = enabled;
   }
 
   /**
@@ -302,7 +399,7 @@ contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
     uint256 tokenId,
     address auth
   ) internal override returns (address) {
-    if (_beforeTokenTransferHookEnabled == true) {
+    if (_getStorage()._beforeTokenTransferHookEnabled == true) {
       (bool success, ) = address(this).delegatecall(
         abi.encodeWithSignature(
           "_beforeTokenTransfer(address,address,address,uint256)",
@@ -384,11 +481,6 @@ contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
    */
 
   /**
-   * @dev Tracks the contract admins.
-   */
-  mapping(address => bool) private _admins;
-
-  /**
    * Access control > multi-admin system
    */
 
@@ -399,7 +491,8 @@ contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
    * @return bool whether the address is an admin or not
    */
   function _isAdmin(address addr) internal view returns (bool) {
-    return _owner == addr || _admins[addr] == true;
+    ERC721BaselineStorage storage $ = _getStorage();
+    return $._owner == addr || $._admins[addr] == true;
   }
 
   /**
@@ -417,9 +510,9 @@ contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
    */
   function _setAdmin(address addr, bool add) internal {
     if (add) {
-      _admins[addr] = true;
+      _getStorage()._admins[addr] = true;
     } else {
-      delete _admins[addr];
+      delete _getStorage()._admins[addr];
     }
     emit AdminSet(addr, add);
   }
@@ -456,15 +549,10 @@ contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
    */
 
   /**
-   * @dev Tracks the contract owner.
-   */
-  address private _owner;
-
-  /**
    * @inheritdoc IERC721Baseline
    */
   function owner() external view returns (address) {
-    return _owner;
+    return _getStorage()._owner;
   }
 
   /**
@@ -473,8 +561,10 @@ contract ERC721BaselineImplementation is ERC721, IERC721Baseline {
    * @param newOwner new owner address
    */
   function _transferOwnership(address newOwner) internal {
-    address oldOwner = _owner;
-    _owner = newOwner;
+    ERC721BaselineStorage storage $ = _getStorage();
+
+    address oldOwner = $._owner;
+    $._owner = newOwner;
     emit OwnershipTransferred(oldOwner, newOwner);
   }
 

@@ -253,6 +253,12 @@ contract(
       describe("_beforeTokenTransfer", () => {
         it("can register a _beforeTokenTransfer hook", async () => {
           const tokenId = 1;
+
+          assert.equal(
+            false,
+            await proxy._beforeTokenTransferHookEnabledProxy(),
+          );
+
           await proxy.adminMint(user, tokenId);
 
           // Make sure that an attacker can't enable the hook.
@@ -261,8 +267,18 @@ contract(
             "Unauthorized",
           );
 
+          assert.equal(
+            false,
+            await proxy._beforeTokenTransferHookEnabledProxy(),
+          );
+
           // Enable hook.
           await proxy.toggleBeforeTokenTransferHook();
+
+          assert.equal(
+            true,
+            await proxy._beforeTokenTransferHookEnabledProxy(),
+          );
 
           // Token owner approves an operator (eg. marketplace) to manage the token.
           await proxyDelegate.approve(operator, tokenId, { from: user });
@@ -635,6 +651,10 @@ async function expectRevert(promise, reason) {
       const reasonId = web3.utils
         .soliditySha3(reason.endsWith(")") ? reason : reason + "()")
         .substr(0, 10);
+
+      if (!revert.data) {
+        throw new Error(revert.message || "Unknown Error.");
+      }
 
       expect(
         typeof revert.data === "string" ? revert.data : revert.data.result,

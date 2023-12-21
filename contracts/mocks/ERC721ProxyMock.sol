@@ -66,16 +66,16 @@ contract ERC721ProxyMock is ERC721Baseline {
     baseline().__update(to, tokenId, auth);
   }
 
-  bool private _beforeTokenTransferHookEnabled;
+  bool public _beforeTokenTransferHookEnabledProxy;
   function onlyProxy_setBeforeTokenTransferHookEnabled(bool enabled) external {
-    _beforeTokenTransferHookEnabled = enabled;
-    baseline().__setBeforeTokenTransferHookEnabled(_beforeTokenTransferHookEnabled);
+    _beforeTokenTransferHookEnabledProxy = enabled;
+    baseline().__setBeforeTokenTransferHookEnabled(_beforeTokenTransferHookEnabledProxy);
   }
 
   function toggleBeforeTokenTransferHook() external {
     baseline().requireAdmin(msg.sender);
-    _beforeTokenTransferHookEnabled = !_beforeTokenTransferHookEnabled;
-    baseline().__setBeforeTokenTransferHookEnabled(_beforeTokenTransferHookEnabled);
+    _beforeTokenTransferHookEnabledProxy = !_beforeTokenTransferHookEnabledProxy;
+    baseline().__setBeforeTokenTransferHookEnabled(_beforeTokenTransferHookEnabledProxy);
   }
 
   // Alter this in the hook to test that the proxy can alter its state without affecting the implementation state.
@@ -85,7 +85,7 @@ contract ERC721ProxyMock is ERC721Baseline {
   function _beforeTokenTransfer(address sender, address, address to, uint256) external {
     emit BeforeTokenTransferCalled();
 
-    require(_beforeTokenTransferHookEnabled, 'not enabled');
+    require(_beforeTokenTransferHookEnabledProxy, 'not enabled');
 
     if (sender == to) {
       revert('Call to self');
