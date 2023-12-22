@@ -1,5 +1,6 @@
 const ERC721Baseline = artifacts.require("ERC721BaselineImplementation");
 const ERC721ProxyMock = artifacts.require("ERC721ProxyMock");
+const InitializationMock = artifacts.require("InitializationMock");
 const ERC721ConstructorAttackerMock = artifacts.require(
   "ERC721ConstructorAttackerMock",
 );
@@ -67,21 +68,21 @@ contract(
           implementation.initialize("Malicious", "M", {
             from: attacker,
           }),
-          "Unauthorized",
+          "InvalidInitialization",
         );
 
         await expectRevert(
           implementation.initialize("Malicious", "M", {
             from: implementationDeployer,
           }),
-          "Unauthorized",
+          "InvalidInitialization",
         );
 
         await expectRevert(
           ERC721ConstructorAttackerMock.new(implementation.address, {
             from: attacker,
           }),
-          "Unauthorized",
+          "InvalidInitialization",
         );
       });
 
@@ -150,6 +151,36 @@ contract(
     });
 
     describe("Proxy", () => {
+      describe("initialization", async () => {
+        it("when used correctly it works", async () => {
+          const proxy = await InitializationMock.new(
+            implementation.address,
+            true,
+          );
+          const proxyDelegate = await ERC721Baseline.at(proxy.address);
+
+          assert.equal("InitializationMock", await proxyDelegate.name());
+        });
+
+        it("fails when calling initialize again", async () => {
+          const proxy = await InitializationMock.new(
+            implementation.address,
+            true,
+          );
+
+          await expectRevert(proxy.init(), "InvalidInitialization");
+        });
+
+        it("fails when calling initialize outside of the constructor", async () => {
+          const proxy = await InitializationMock.new(
+            implementation.address,
+            false,
+          );
+
+          await expectRevert(proxy.init(), "Unauthorized");
+        });
+      });
+
       describe("onlyProxy methods", async () => {
         it("onlyProxy method works", async () => {
           // adminMint is a method that uses the ERC721Baseline __mint method

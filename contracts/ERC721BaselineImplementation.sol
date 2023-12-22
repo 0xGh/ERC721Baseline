@@ -18,7 +18,7 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
   /**
    * @dev ERC721Baseline uses ERC-7201 (Namespaced Storage Layout) for storage
    * to prevent collisions with proxies storage.
-   * Proxies are encouraged, but not required to, use a similar pattern for storage.
+   * Proxies are encouraged, but not required, to use a similar pattern for storage.
    * See https://eips.ethereum.org/EIPS/eip-7201.
    *
    * @custom:storage-location erc7201:erc721baseline.implementation.storage
@@ -27,16 +27,9 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
     string VERSION;
 
     /**
-     * @dev Tracks the proxy initialization state.
-     */
-    bool _initialized;
-
-    /**
      * Metadata
      */
     uint256 totalSupply;
-    string _name;
-    string _symbol;
 
     mapping(uint256 => string) __tokenURI;
     string __sharedURI;
@@ -97,6 +90,7 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
 
   constructor() {
     _getStorage().VERSION = "0.1.0-alpha.7";
+    _disableInitializers();
   }
 
   /**
@@ -142,21 +136,11 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
   /**
    * @inheritdoc IERC721Baseline
    */
-  function initialize(string memory name, string memory symbol) external {
-    ERC721BaselineStorage storage $ = _getStorage();
-
-    if (
-      $._initialized == true ||
-      address(this).code.length != 0
-    ) {
+  function initialize(string memory name, string memory symbol) external initializer {
+    if (address(this).code.length != 0) {
       revert Unauthorized();
     }
-
-    $._initialized = true;
-
-    $._name = name;
-    $._symbol = symbol;
-
+    __ERC721_init(name, symbol);
     _setAdmin(_msgSender(), true);
     _transferOwnership(_msgSender());
   }
@@ -171,20 +155,6 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
    */
   function totalSupply() external view returns (uint256) {
     return _getStorage().totalSupply;
-  }
-
-  /**
-   * @dev See {IERC721Metadata-name}.
-   */
-  function name() public view override returns (string memory) {
-    return _getStorage()._name;
-  }
-
-  /**
-   * @dev See {IERC721Metadata-symbol}.
-   */
-  function symbol() public view override returns (string memory) {
-    return _getStorage()._symbol;
   }
 
   /**
@@ -562,7 +532,6 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
    */
   function _transferOwnership(address newOwner) internal {
     ERC721BaselineStorage storage $ = _getStorage();
-
     address oldOwner = $._owner;
     $._owner = newOwner;
     emit OwnershipTransferred(oldOwner, newOwner);

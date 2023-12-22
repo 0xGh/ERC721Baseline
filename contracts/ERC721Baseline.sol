@@ -39,10 +39,16 @@ contract ERC721Baseline is Proxy {
     }
     implementation.value = ERC721BaselineImplementation;
 
-    (bool success, ) = ERC721BaselineImplementation.delegatecall(
+    (bool success, bytes memory result) = ERC721BaselineImplementation.delegatecall(
       abi.encodeCall(IERC721Baseline.initialize, (name, symbol))
     );
-    require(success);
+
+    if (!success) {
+      if (result.length == 0) revert("Initialization Failed.");
+      assembly {
+        revert(add(32, result), mload(result))
+      }
+    }
   }
 
   function _implementation() internal view override returns (address) {
