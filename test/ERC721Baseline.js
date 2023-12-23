@@ -170,15 +170,6 @@ contract(
 
           await expectRevert(proxy.init(), "InvalidInitialization");
         });
-
-        it("fails when calling initialize outside of the constructor", async () => {
-          const proxy = await InitializationMock.new(
-            implementation.address,
-            false,
-          );
-
-          await expectRevert(proxy.init(), "Unauthorized");
-        });
       });
 
       describe("onlyProxy methods", async () => {
@@ -527,6 +518,15 @@ contract(
       });
 
       describe("Royalties", () => {
+        it("works only for admins", async () => {
+          await expectRevert(
+            proxyDelegate.configureRoyalties(ZERO_ADDRESS, 1000, {
+              from: attacker,
+            }),
+            "Unauthorized",
+          );
+        });
+
         it("returns zero address and 0 amount when unset", async () => {
           const { 0: receiver, 1: amount } = await proxyDelegate.royaltyInfo(
             10,
@@ -537,7 +537,7 @@ contract(
         });
 
         it("returns zero address and 0 amount when only one is set", async () => {
-          await proxy.onlyProxy_configureRoyalties(ZERO_ADDRESS, 1000);
+          await proxyDelegate.configureRoyalties(ZERO_ADDRESS, 1000);
 
           let { 0: receiver, 1: amount } = await proxyDelegate.royaltyInfo(
             10,
@@ -546,7 +546,7 @@ contract(
           assert.equal(receiver, ZERO_ADDRESS);
           assert.equal(amount, 0);
 
-          await proxy.onlyProxy_configureRoyalties(deployer, 0);
+          await proxyDelegate.configureRoyalties(deployer, 0);
 
           ({ 0: receiver, 1: amount } = await proxyDelegate.royaltyInfo(
             10,
@@ -557,7 +557,10 @@ contract(
         });
 
         it("returns right amount of royalties when configured", async () => {
-          await proxy.onlyProxy_configureRoyalties(deployer, 1500);
+          await proxyDelegate.configureRoyalties(deployer, 1500);
+
+          assert.equal(deployer, await proxyDelegate.royaltiesReceiver());
+          assert.equal(1500, await proxyDelegate.royaltiesBps());
 
           const salePrice = web3.utils.toWei("12.25");
           const { 0: receiver, 1: amount } = await proxyDelegate.royaltyInfo(
@@ -646,6 +649,8 @@ contract(
           ...method.inputs.map((arg, index) => {
             switch (arg.type) {
               case "uint256":
+                return 1;
+              case "uint16":
                 return 1;
               case "string":
                 return "test";

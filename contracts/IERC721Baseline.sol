@@ -13,7 +13,8 @@ import {IERC2981} from "@openzeppelin/contracts/interfaces/IERC2981.sol";
 interface IERC721Baseline is IERC721, IERC2981 {
 
   /**
-   * @dev The version of the implementation contract.
+   * @notice The version of the implementation contract.
+   * @return string the implementation version
    */
   function VERSION() external view returns (string memory);
 
@@ -71,6 +72,8 @@ interface IERC721Baseline is IERC721, IERC2981 {
    * @notice The total minted supply.
    * @dev The supply is decreased when a token is burned.
    * Generally it is recommended to use a separate counter variable to track the supply available for minting.
+   *
+   * @return uint256 the existing tokens' supply
    */
   function totalSupply() external view returns (uint256);
 
@@ -89,6 +92,7 @@ interface IERC721Baseline is IERC721, IERC2981 {
    * @notice Returns the token URI for a token ID.
    *
    * @param tokenId token ID
+   * @return string the token URI for the token ID
    */
   function __tokenURI(uint256 tokenId) external view returns (string memory);
 
@@ -96,7 +100,6 @@ interface IERC721Baseline is IERC721, IERC2981 {
    * @notice Sets the token URI for a token ID.
    * @dev Emits EIP-4906's `MetadataUpdate` event with the `tokenId`.
    * This method is internal and only the proxy contract can call it.
-   *
    *
    * @param tokenId token ID
    * @param tokenURI URI pointing to the metadata
@@ -106,6 +109,8 @@ interface IERC721Baseline is IERC721, IERC2981 {
   /**
    * @notice Returns the shared URI for the tokens.
    * @dev This method is internal and only the proxy contract can call it.
+   *
+   * @return string the shared URI
    */
   function __sharedURI() external view returns (string memory);
 
@@ -124,6 +129,8 @@ interface IERC721Baseline is IERC721, IERC2981 {
   /**
    * @notice Returns the base URI for the tokens.
    * @dev When set this URI is prepended to the token ID.
+   *
+   * @return string the base URI
    */
   function __baseURI() external view returns (string memory);
 
@@ -145,23 +152,28 @@ interface IERC721Baseline is IERC721, IERC2981 {
    ************************************************/
 
   /**
-   * @dev The address of the royalties receiver.
+   * @notice The address of the royalties receiver.
+   *
+   * @return address the address of the royalties receiver
    */
-  function __royaltiesReceiver() external view returns (address);
+  function royaltiesReceiver() external view returns (address);
 
   /**
-   * @dev The royalties rate in basis points (100 bps = 1%).
+   * @notice The royalties rate in basis points (100 bps = 1%).
+   *
+   * @return uint256 the royalties rate
    */
-  function __royaltiesBps() external view returns (uint256);
+  function royaltiesBps() external view returns (uint256);
 
   /**
    * @notice Configures royalties receiver and bps for all the tokens.
    * @dev Bps stants for basis points where 100 bps = 1%.
+   * The sender must be an admin.
    *
    * @param receiver address for the royalties receiver
    * @param bps (basis points) royalties rate
    */
-  function __configureRoyalties(address receiver, uint256 bps) external;
+  function configureRoyalties(address payable receiver, uint16 bps) external;
 
 
   /************************************************

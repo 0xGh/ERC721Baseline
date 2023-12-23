@@ -16,10 +16,11 @@ import {Utils} from "./Utils.sol";
 contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
 
   /**
-   * @dev ERC721Baseline uses ERC-7201 (Namespaced Storage Layout) for storage
-   * to prevent collisions with proxies storage.
-   * Proxies are encouraged, but not required, to use a similar pattern for storage.
+   * @dev ERC721Baseline uses ERC-7201 (Namespaced Storage Layout)
+   * to prevent collisions with the proxies storage.
    * See https://eips.ethereum.org/EIPS/eip-7201.
+   *
+   * Proxies are encouraged, but not required, to use a similar pattern for storage.
    *
    * @custom:storage-location erc7201:erc721baseline.implementation.storage
    */
@@ -38,8 +39,8 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
     /**
      * Royalties
      */
-    address __royaltiesReceiver;
-    uint256 __royaltiesBps;
+    address payable _royaltiesReceiver;
+    uint16 _royaltiesBps;
 
     /**
      * @dev Tracks whether the proxy's `_beforeTokenTransfer` hook is enabled or not.
@@ -70,17 +71,17 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
   bytes32 private constant ERC721BaselineStorageLocation = 0xd70e9a647412bf72add39fd1ab5a6a89bfb0d778061be5e3d13cfa60d9d90b00;
 
   /**
-   * @dev Convenience method to access storage at ERC721BaselineStorageLocation location.
+   * @dev Convenience method to access the storage at ERC721BaselineStorageLocation location.
    *
    * Usage:
    *
    *  ERC721BaselineStorage storage $ = _getStorage();
    *
-   *  if ($.__royaltiesReceiver != address(0)) {
-   *    $.__royaltiesReceiver = address(0);
+   *  if ($._royaltiesReceiver != address(0)) {
+   *    $._royaltiesReceiver = address(0);
    *  }
    *
-   * @return $ a reference to the storage slot for reading and writing
+   * @return $ a reference to the storage at ERC721BaselineStorageLocation location for reading and writing
    */
   function _getStorage() private pure returns (ERC721BaselineStorage storage $) {
     assembly {
@@ -137,9 +138,6 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
    * @inheritdoc IERC721Baseline
    */
   function initialize(string memory name, string memory symbol) external initializer {
-    if (address(this).code.length != 0) {
-      revert Unauthorized();
-    }
     __ERC721_init(name, symbol);
     _setAdmin(_msgSender(), true);
     _transferOwnership(_msgSender());
@@ -246,15 +244,15 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
   /**
    * @inheritdoc IERC721Baseline
    */
-  function __royaltiesReceiver() external view returns (address) {
-    return _getStorage().__royaltiesReceiver;
+  function royaltiesReceiver() external view returns (address) {
+    return _getStorage()._royaltiesReceiver;
   }
 
   /**
    * @inheritdoc IERC721Baseline
    */
-  function __royaltiesBps() external view returns (uint256) {
-    return _getStorage().__royaltiesBps;
+  function royaltiesBps() external view returns (uint256) {
+    return _getStorage()._royaltiesBps;
   }
 
   /**
@@ -266,8 +264,8 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
   ) external view returns (address, uint256) {
     ERC721BaselineStorage storage $ = _getStorage();
 
-    if ($.__royaltiesBps > 0 && $.__royaltiesReceiver != address(0)) {
-      return ($.__royaltiesReceiver, salePrice * $.__royaltiesBps / 10000);
+    if ($._royaltiesBps > 0 && $._royaltiesReceiver != address(0)) {
+      return ($._royaltiesReceiver, salePrice * $._royaltiesBps / 10000);
     }
 
     return (address(0), 0);
@@ -276,15 +274,17 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
   /**
    * @inheritdoc IERC721Baseline
    */
-  function __configureRoyalties(address receiver, uint256 bps) external onlyProxy {
+  function configureRoyalties(address payable receiver, uint16 bps) external {
+    this.requireAdmin(_msgSender());
+
     ERC721BaselineStorage storage $ = _getStorage();
 
-    if (receiver != $.__royaltiesReceiver) {
-      $.__royaltiesReceiver = receiver;
+    if (receiver != $._royaltiesReceiver) {
+      $._royaltiesReceiver = receiver;
     }
 
-    if (bps != $.__royaltiesBps) {
-      $.__royaltiesBps = bps;
+    if (bps != $._royaltiesBps) {
+      $._royaltiesBps = bps;
     }
   }
 
@@ -370,7 +370,7 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
     address auth
   ) internal override returns (address) {
     if (_getStorage()._beforeTokenTransferHookEnabled == true) {
-      (bool success, ) = address(this).delegatecall(
+      (bool success, bytes memory reason) = address(this).delegatecall(
         abi.encodeWithSignature(
           "_beforeTokenTransfer(address,address,address,uint256)",
           _msgSender(),
@@ -380,12 +380,11 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
         )
       );
 
-      assembly {
-        switch success
-          case 0 {
-            returndatacopy(0, 0, returndatasize())
-            revert(0, returndatasize())
-          }
+      if (success == false) {
+        if (reason.length == 0) revert("_beforeTokenTransfer");
+        assembly {
+          revert(add(32, reason), mload(reason))
+        }
       }
     }
 
@@ -411,7 +410,6 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
         if (reason.length == 0) {
           revert ERC721InvalidReceiver(to);
         } else {
-          /// @solidity memory-safe-assembly
           assembly {
             revert(add(32, reason), mload(reason))
           }

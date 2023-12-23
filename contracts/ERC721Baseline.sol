@@ -10,15 +10,11 @@ import {IERC721Baseline} from "./IERC721Baseline.sol";
  * @custom:version v0.1.0-alpha.7
  * @notice A minimal proxy contract for ERC721BaselineImplementation.
  *
- * @dev !!WARNING!! Be careful when defining variables in your proxy
- * as these might clash with the implementation ones.
+ * @dev ERC721BaselineImplementation uses ERC-7201 (Namespaced Storage Layout)
+ * to prevent collisions with the proxies storage.
+ * See https://eips.ethereum.org/EIPS/eip-7201.
  *
- * This contract makes the assumption that you will define storage slots
- * similarly to EIP-1967 (https://eips.ethereum.org/EIPS/eip-1967)
- * defining a struct with your variables and storing it at a specific location
- * eg. bytes32(uint256(keccak256("erc721baseline.storage")) - 1)).
- * Alternatively you can fork this contract and add a gap at the beginning,
- * although this approach is discouraged.
+ * Proxies are encouraged, but not required, to use a similar pattern for storage.
  */
 contract ERC721Baseline is Proxy {
 
@@ -26,6 +22,10 @@ contract ERC721Baseline is Proxy {
     address value;
   }
 
+  /**
+   * @dev Storage slot with the address of the current implementation.
+   * This is the keccak-256 hash of "eip1967.proxy.implementation" subtracted by 1.
+   */
   bytes32 internal constant _IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
 
   constructor(
@@ -39,14 +39,14 @@ contract ERC721Baseline is Proxy {
     }
     implementation.value = ERC721BaselineImplementation;
 
-    (bool success, bytes memory result) = ERC721BaselineImplementation.delegatecall(
+    (bool success, bytes memory reason) = ERC721BaselineImplementation.delegatecall(
       abi.encodeCall(IERC721Baseline.initialize, (name, symbol))
     );
 
-    if (!success) {
-      if (result.length == 0) revert("Initialization Failed.");
+    if (success == false) {
+      if (reason.length == 0) revert("Initialization Failed.");
       assembly {
-        revert(add(32, result), mload(result))
+        revert(add(32, reason), mload(reason))
       }
     }
   }
