@@ -7,7 +7,7 @@ import {IERC721Baseline} from "./IERC721Baseline.sol";
 
 /**
  * @title ERC721Baseline
- * @custom:version v0.1.0-alpha.7
+ * @custom:version v0.1.0-alpha.8
  * @notice A minimal proxy contract for ERC721BaselineImplementation.
  *
  * @dev ERC721BaselineImplementation uses ERC-7201 (Namespaced Storage Layout)
