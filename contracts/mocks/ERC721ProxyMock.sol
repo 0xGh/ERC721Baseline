@@ -35,6 +35,10 @@ contract ERC721ProxyMock is ERC721Baseline {
     baseline().__setBaseURI(baseURI);
   }
 
+  function onlyProxy_configureRoyalties(address payable receiver, uint16 bps) external {
+    baseline().__configureRoyalties(receiver, bps);
+  }
+
   function onlyProxy_mint(address to, uint256 tokenId) external returns (uint256 newBalance) {
     baseline().__mint(to, tokenId);
     return baseline().balanceOf(to);

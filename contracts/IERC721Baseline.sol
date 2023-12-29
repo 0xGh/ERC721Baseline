@@ -175,6 +175,16 @@ interface IERC721Baseline is IERC721, IERC2981 {
    */
   function configureRoyalties(address payable receiver, uint16 bps) external;
 
+  /**
+   * @notice Configures royalties receiver and bps for all the tokens.
+   * @dev Bps stants for basis points where 100 bps = 1%.
+   * This method is internal and only the proxy contract can call it.
+   *
+   * @param receiver address for the royalties receiver
+   * @param bps (basis points) royalties rate
+   */
+  function __configureRoyalties(address payable receiver, uint16 bps) external;
+
 
   /************************************************
    * Internal ERC721 methods exposed to the proxy

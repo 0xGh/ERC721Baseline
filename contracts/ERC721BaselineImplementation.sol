@@ -271,12 +271,7 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
     return (address(0), 0);
   }
 
-  /**
-   * @inheritdoc IERC721Baseline
-   */
-  function configureRoyalties(address payable receiver, uint16 bps) external {
-    this.requireAdmin(_msgSender());
-
+  function _configureRoyalties(address payable receiver, uint16 bps) internal {
     ERC721BaselineStorage storage $ = _getStorage();
 
     if (receiver != $._royaltiesReceiver) {
@@ -286,6 +281,21 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
     if (bps != $._royaltiesBps) {
       $._royaltiesBps = bps;
     }
+  }
+
+  /**
+   * @inheritdoc IERC721Baseline
+   */
+  function configureRoyalties(address payable receiver, uint16 bps) external {
+    this.requireAdmin(_msgSender());
+    _configureRoyalties(receiver, bps);
+  }
+
+  /**
+   * @inheritdoc IERC721Baseline
+   */
+  function __configureRoyalties(address payable receiver, uint16 bps) external onlyProxy {
+    _configureRoyalties(receiver, bps);
   }
 
   /************************************************
