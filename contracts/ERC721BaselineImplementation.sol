@@ -331,8 +331,8 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
     ERC721BaselineStorage storage $ = _getStorage();
 
     $.totalSupply += 1;
-    _mint(to, tokenId);
     $.__tokenURI[tokenId] = tokenURI;
+    _mint(to, tokenId);
   }
 
   /**
@@ -342,11 +342,10 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
     ERC721BaselineStorage storage $ = _getStorage();
 
     $.totalSupply -= 1;
-    _burn(tokenId);
-
     if (bytes($.__tokenURI[tokenId]).length > 0) {
       delete $.__tokenURI[tokenId];
     }
+    _burn(tokenId);
   }
 
   /**
