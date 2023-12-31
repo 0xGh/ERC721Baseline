@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.21;
 
-import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import {ERC721Upgradeable} from "./ERC721Upgradeable.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {IERC721Baseline} from "./IERC721Baseline.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
@@ -231,7 +231,7 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
     }
 
     if (bytes($.__baseURI).length > 0) {
-      return string.concat($.__baseURI, this.toString(tokenId));
+      return string.concat($.__baseURI, Utils.toString(tokenId));
     }
 
     return "";
@@ -410,21 +410,7 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
     uint256 tokenId,
     bytes memory data
   ) external {
-    if (to.code.length > 0) {
-      try IERC721Receiver(to).onERC721Received(sender, from, tokenId, data) returns (bytes4 retval) {
-        if (retval != IERC721Receiver.onERC721Received.selector) {
-          revert ERC721InvalidReceiver(to);
-        }
-      } catch (bytes memory reason) {
-        if (reason.length == 0) {
-          revert ERC721InvalidReceiver(to);
-        } else {
-          assembly {
-            revert(add(32, reason), mload(reason))
-          }
-        }
-      }
-    }
+    _checkOnERC721Received(sender, from, to, tokenId, data);
   }
 
   /**
@@ -498,10 +484,7 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
    * @inheritdoc IERC721Baseline
    */
   function setAdmin(address addr, bool add) external {
-    if (_isAdmin(_msgSender()) == false) {
-      revert Unauthorized();
-    }
-
+    this.requireAdmin(_msgSender());
     _setAdmin(addr, add);
   }
 
@@ -548,10 +531,7 @@ contract ERC721BaselineImplementation is ERC721Upgradeable, IERC721Baseline {
    * @inheritdoc IERC721Baseline
    */
   function transferOwnership(address newOwner) external {
-    if (_isAdmin(_msgSender()) == false) {
-      revert Unauthorized();
-    }
-
+    this.requireAdmin(_msgSender());
     _transferOwnership(newOwner);
   }
 
